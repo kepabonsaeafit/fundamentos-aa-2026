@@ -2,10 +2,10 @@
 
 ## Datos del estudiante
 
-- **Nombre:** Kevin
+- **Nombres:** Kevin Pabon, Jeronimo, Jose Alejandro Jimenez
 - **Programa:** Ingeniería de Sistemas
 - **Universidad:** EAFIT
-- **Semestre:** 2026-1
+- **Semestre:** 2026-2
 - **Profesor:** Yomin Estiven Jaramillo Múnera
 
 ## Talleres
