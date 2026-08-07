@@ -1,21 +1,24 @@
-# Fundamentos de Aprendizaje Automático
+# Fundamentos de Aprendizaje Automatico
 
-## Datos del estudiante
+Repositorio de equipo para talleres del curso.
 
-- **Nombre:** Kevin
-- **Programa:** Ingeniería de Sistemas
-- **Universidad:** EAFIT
-- **Semestre:** 2026-1
-- **Profesor:** Yomin Estiven Jaramillo Múnera
+**Curso:** Fundamentos de Aprendizaje Automatico
+**Semestre:** 2026-1 | EAFIT
+**Profesor:** Yomin Estiven Jaramillo Munera
+
+## Equipo
+
+- Kevin Pabon Nino - @kepabonsaeafit
+- Jose Alejandro Jimenez - @ll333ll
+- Geronimo Montes Acebedo - @gmonsteaa
 
 ## Talleres
 
-| #   | Tema             | Estado |
-| --- | ---------------- | ------ |
-| 01  | NumPy y Pandas   | 🔲     |
+| # | Tema | Dataset | Estado |
+|---|------|---------|--------|
+| 01 | EDA con NumPy y Pandas | Airbnb Listings | ?? En progreso |
 
 ## Estructura
 
-- **`talleres/`**: entregas individuales de los talleres del curso.
-- **`proyecto/`**: contenido de solo referencia; el proyecto grupal se desarrolla en otro repositorio.
-- **`notas/`**: notas de estudio personales.
+- `talleres/` -> entregas de equipo por workshop
+- `notas/` -> notas de estudio personales de Kevin
