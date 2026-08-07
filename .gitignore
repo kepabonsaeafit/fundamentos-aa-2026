@@ -8,3 +8,8 @@ data/*.csv
 .env
 .DS_Store
 talleres/workshop1-eda/data/
+
+# Claude Code (no subir al repo)
+CLAUDE.md
+**/CLAUDE.md
+.claude/
