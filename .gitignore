@@ -7,3 +7,4 @@ data/raw/
 data/*.csv
 .env
 .DS_Store
+talleres/workshop1-eda/data/
