@@ -2,9 +2,11 @@
 
 Repositorio de equipo para talleres del curso.
 
-**Curso:** Fundamentos de Aprendizaje Automatico
-**Semestre:** 2026-1 | EAFIT
-**Profesor:** Yomin Estiven Jaramillo Munera
+- **Curso:** Fundamentos de Aprendizaje Automatico
+- **Programa:** Ingeniería de Sistemas
+- **Universidad:** EAFIT
+- **Semestre:** 2026-2
+- **Profesor:** Yomin Estiven Jaramillo Múnera
 
 ## Equipo
 
@@ -14,11 +16,6 @@ Repositorio de equipo para talleres del curso.
 
 ## Talleres
 
-| # | Tema | Dataset | Estado |
-|---|------|---------|--------|
-| 01 | EDA con NumPy y Pandas | Airbnb Listings | ?? En progreso |
-
-## Estructura
-
-- `talleres/` -> entregas de equipo por workshop
-- `notas/` -> notas de estudio personales de Kevin
+| #   | Tema                   | Dataset         | Estado         |
+| --- | ---------------------- | --------------- | -------------- |
+| 01  | EDA con NumPy y Pandas | Airbnb Listings | 🔲 En progreso |
