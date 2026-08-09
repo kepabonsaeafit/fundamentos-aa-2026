@@ -32,16 +32,16 @@
 - [x] .sort_values() - top 5 y bottom 5 interpretados
 
 ### Fase 4 - Visualizacion (cada una con interpretacion + recomendacion)
-- [ ] Grafico de barras
-- [ ] Grafico de pie
-- [ ] Histograma (simetria/sesgo)
-- [ ] Scatter plot (correlacion)
-- [ ] Boxplot (relacionar con outliers de Fase 2)
-- [ ] Grafico de lineas O segundo boxplot comparativo
+- [x] Grafico de barras
+- [x] Grafico de pie
+- [x] Histograma (simetria/sesgo)
+- [x] Scatter plot (correlacion)
+- [x] Boxplot (relacionar con outliers de Fase 2)
+- [x] Grafico de lineas O segundo boxplot comparativo
 
 ### Fase 5 - Conclusiones
-- [ ] Parrafo de conclusiones generales
-- [ ] Subplot (2,2) con graficos mas relevantes
+- [x] Parrafo de conclusiones generales
+- [x] Subplot (2,2) con graficos mas relevantes
 
 ## Entregable
 Notebook .ipynb en este repo. Solo se sube el link del repo a Interactiva.
