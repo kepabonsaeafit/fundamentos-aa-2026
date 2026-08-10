@@ -18,4 +18,4 @@ Repositorio de equipo para talleres del curso.
 
 | #   | Tema                   | Dataset         | Estado         |
 | --- | ---------------------- | --------------- | -------------- |
-| 01  | EDA con NumPy y Pandas | Airbnb Listings | 🔲 En progreso |
+| 01  | EDA con NumPy y Pandas | Airbnb Listings | ✅ Finalizado  |
