@@ -1,0 +1,98 @@
+# Workshop 2 - Machine Learning (Unidad 2)
+
+Pipelines, entrenamiento, comparacion de modelos y validacion cruzada sobre un problema de
+regresion y uno de clasificacion.
+
+**Datasets asignados:**
+- Regresion - Flight Price Prediction: https://www.kaggle.com/datasets/shubhambathwal/flight-price-prediction
+- Clasificacion - Thyroid Disease Data: https://www.kaggle.com/datasets/jainaru/thyroid-disease-data/data
+
+## Equipo
+- Kevin Pabon Nino - @kepabonsaeafit
+- Jose Alejandro Jimenez - @ll333ll
+- Geronimo Montes Acebedo - @gmonsteaa
+
+## Notebooks
+
+| Notebook | Problema | Target |
+| --- | --- | --- |
+| `workshop2_regresion_vuelos.ipynb` | Regresion | `price` (rupias indias) |
+| `workshop2_clasificacion_tiroides.ipynb` | Clasificacion binaria | `Recurred` (Yes/No) |
+
+Los dos notebooks estan ejecutados: las tablas y las graficas se ven en GitHub sin correr nada.
+
+## Datos
+
+Los CSV no se versionan (misma regla que el workshop 1). Para descargarlos:
+
+```bash
+pip install kaggle
+kaggle datasets download -d shubhambathwal/flight-price-prediction -p data/vuelos --unzip
+kaggle datasets download -d jainaru/thyroid-disease-data -p data/tiroides --unzip
+```
+
+Los notebooks usan `data/vuelos/Clean_Dataset.csv` y `data/tiroides/Thyroid_Diff.csv`, relativos a
+esta carpeta.
+
+## Checklist (basado en el enunciado)
+
+### Fase 1 - EDA, limpieza y preprocesamiento (ambos datasets)
+- [x] 1. Documentacion del dataset, problema de negocio/salud y variable objetivo
+- [x] 2. Carga con pandas, head()/tail(), .shape, .info() y diccionario de datos
+- [x] 3. .describe() con interpretacion de 3+ estadisticos por dataset
+- [x] 4. Nulos por columna + porcentaje + estrategia de imputacion justificada
+- [x] 5. Duplicados identificados y eliminados (reportando cuantos)
+- [x] 6. Inconsistencias de formato en categoricas revisadas y corregidas
+- [x] 7. Outliers via IQR en columnas numericas, con decision justificada
+- [x] 8. Graficas de EDA (barras, pie, histograma, scatter, boxplot) con interpretacion y recomendacion
+- [x] 9. Tecnica de codificacion justificada por variable categorica
+- [x] 10. Escalamiento de numericas: si aplica y con que tecnica, justificado
+
+### Fase 2 - Division de datos y Pipelines
+- [ ] 11. Split train / validation / test (70/15/15) con explicacion del proposito de cada conjunto
+- [ ] 12. Pipeline con ColumnTransformer (numerico y categorico) por dataset
+- [ ] 13. Verificacion escrita de ausencia de data leakage (.fit() solo sobre X_train)
+
+### Fase 3 - Modelado: Regresion
+- [ ] 14. Entrenar Regresion Lineal, KNN, Decision Tree, Random Forest y Gradient Boosting
+- [ ] 15. Predicciones sobre el conjunto de validacion
+
+### Fase 4 - Modelado: Clasificacion
+- [ ] 16. Entrenar KNN, Decision Tree, Random Forest y Gradient Boosting
+- [ ] 17. Predicciones sobre el conjunto de validacion
+
+### Fase 5 - Metricas en train y validacion
+- [ ] 18. Regresion: MAE, MSE y R2 en train y en val, con analisis de over/underfitting
+- [ ] 19. Clasificacion: Accuracy, Precision, Recall, F1 y matriz de confusion en train y en val
+- [ ] 20. Tabla comparativa (train + val) para cada problema
+- [ ] 21. Seleccion del mejor modelo por problema, con trade-offs
+
+### Fase 6 - Evaluacion final en Test
+- [ ] 22. Evaluar los 5 modelos de regresion y los 4 de clasificacion sobre test
+- [ ] 23. Tabla final en test y comparacion contra la de validacion
+
+### Fase 7 - Cross Validation
+- [ ] 24. Explicacion de K-Fold Cross Validation con palabras propias
+- [ ] 25. K-Fold sobre el mejor modelo de regresion
+- [ ] 26. K-Fold sobre el mejor modelo de clasificacion
+- [ ] 27. Comparacion contra el desempeno en validacion y analisis de estabilidad
+
+### Fase 8 - Conclusiones
+- [ ] 28. Parrafo de conclusiones comparando ambos problemas + subplot (2,2) por dataset
+
+## Reparto
+
+| Fase | Responsable |
+| --- | --- |
+| 1 (puntos 1-10, ambos datasets) | Jose Alejandro Jimenez |
+| 2 a 8 | Por asignar |
+
+La Fase 1 deja definida al final de cada notebook (puntos 9 y 10) la especificacion de
+preprocesamiento -listas de columnas numericas, nominales y ordinales con sus ordenes de
+categorias- que es justo lo que consume el ColumnTransformer de la Fase 2.
+
+## Entregable
+Dos notebooks .ipynb en este repo, uno de regresion y uno de clasificacion. Solo se sube el link
+del repo a la plataforma.
+
+**Nota:** sustentacion aleatoria -> (Sustentacion+Entrega)/2

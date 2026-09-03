@@ -19,3 +19,4 @@ Repositorio de equipo para talleres del curso.
 | #   | Tema                   | Dataset         | Estado         |
 | --- | ---------------------- | --------------- | -------------- |
 | 01  | EDA con NumPy y Pandas | Airbnb Listings | ✅ Finalizado  |
+| 02  | ML: pipelines, modelos y validacion cruzada | Flight Price + Thyroid Disease | 🔲 En progreso |
