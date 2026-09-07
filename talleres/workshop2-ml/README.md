@@ -62,23 +62,23 @@ esta carpeta.
 - [x] 17. Predicciones sobre el conjunto de validacion
 
 ### Fase 5 - Metricas en train y validacion
-- [ ] 18. Regresion: MAE, MSE y R2 en train y en val, con analisis de over/underfitting
-- [ ] 19. Clasificacion: Accuracy, Precision, Recall, F1 y matriz de confusion en train y en val
-- [ ] 20. Tabla comparativa (train + val) para cada problema
-- [ ] 21. Seleccion del mejor modelo por problema, con trade-offs
+- [x] 18. Regresion: MAE, MSE y R2 en train y en val, con analisis de over/underfitting
+- [x] 19. Clasificacion: Accuracy, Precision, Recall, F1 y matriz de confusion en train y en val
+- [x] 20. Tabla comparativa (train + val) para cada problema
+- [x] 21. Seleccion del mejor modelo por problema, con trade-offs
 
 ### Fase 6 - Evaluacion final en Test
-- [ ] 22. Evaluar los 5 modelos de regresion y los 4 de clasificacion sobre test
-- [ ] 23. Tabla final en test y comparacion contra la de validacion
+- [x] 22. Evaluar los 5 modelos de regresion y los 4 de clasificacion sobre test
+- [x] 23. Tabla final en test y comparacion contra la de validacion
 
 ### Fase 7 - Cross Validation
-- [ ] 24. Explicacion de K-Fold Cross Validation con palabras propias
-- [ ] 25. K-Fold sobre el mejor modelo de regresion
-- [ ] 26. K-Fold sobre el mejor modelo de clasificacion
-- [ ] 27. Comparacion contra el desempeno en validacion y analisis de estabilidad
+- [x] 24. Explicacion de K-Fold Cross Validation con palabras propias
+- [x] 25. K-Fold sobre el mejor modelo de regresion
+- [x] 26. K-Fold sobre el mejor modelo de clasificacion
+- [x] 27. Comparacion contra el desempeno en validacion y analisis de estabilidad
 
 ### Fase 8 - Conclusiones
-- [ ] 28. Parrafo de conclusiones comparando ambos problemas + subplot (2,2) por dataset
+- [x] 28. Parrafo de conclusiones comparando ambos problemas + subplot (2,2) por dataset
 
 ## Reparto
 
