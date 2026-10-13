@@ -41,16 +41,7 @@ El notebook lo lee como `../../data/Mall_Customers.csv`. La version actual del C
 - [x] Fase 10 (punto 12) - Accuracy, classification report, matriz de confusion
 - [x] Reflexion final (punto 13)
 
-## Reparto
-
-| Fase | Responsable |
-| --- | --- |
-| 0 a 4 (puntos 2-6) | Kevin Pabon Nino |
-| 5 a 10 + reflexion (puntos 7-13) | Geronimo Montes Acebedo |
-
-## Handoff a la Fase 5
-
-Lo elegido en las fases 0-4:
+## Resultado de las fases 0 a 4
 
 | Metodo | Parametros | N. clusters | Ruido | Silhouette |
 | --- | --- | ---: | ---: | ---: |
@@ -58,20 +49,14 @@ Lo elegido en las fases 0-4:
 | Agglomerative | k = 6, ward | 6 | N/A | 0.310 |
 | DBSCAN | eps = 0.9, min_samples = 8 | 4 | 25 (12.5 %) | 0.269 (sin ruido) |
 
-Variables listas en el notebook: `df` (sin `CustomerID`, con `Genre_encoded`), `features`,
-`X_scaled`, `scaler`, `tabla_kmeans`, `tabla_agg`, `tabla_dbscan`, `labels_kmeans`, `labels_agg`,
-`labels_dbscan`, `X_pca` y `plot_clusters_3d`.
-
-Tres cosas a tener en cuenta al continuar:
+Dos cosas a tener en cuenta:
 
 1. **El Silhouette no tiene pico** en K-Means ni en Agglomerative: sube siempre hasta k = 10. Por
    eso k = 6 se eligio por el codo, el corte del dendrograma y que los grupos se puedan describir,
    no por el puntaje mas alto.
 2. **El genero pesa mucho.** Despues de escalar, varios grupos de K-Means quedan solo de hombres o
    solo de mujeres, y en DBSCAN ningun grupo mezcla generos (las 103 mujeres quedan en un solo
-   grupo). Vale la pena comentarlo en la Fase 6.
-3. **En DBSCAN el ruido es `-1`.** Si se usa DBSCAN en la Fase 7 o como target, hay que decidir
-   que hacer con esos 25 clientes.
+   grupo).
 
 ## Resultado de las fases 5 a 10
 
