@@ -20,3 +20,4 @@ Repositorio de equipo para talleres del curso.
 | --- | ---------------------- | --------------- | -------------- |
 | 01  | EDA con NumPy y Pandas | Airbnb Listings | ✅ Finalizado  |
 | 02  | ML: pipelines, modelos y validacion cruzada | Flight Price + Thyroid Disease | ✅ Finalizado |
+| 03  | Clustering: K-Means, Agglomerative y DBSCAN | Mall Customers | 🚧 En progreso |
