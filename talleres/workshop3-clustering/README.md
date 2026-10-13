@@ -80,8 +80,8 @@ Tres cosas a tener en cuenta al continuar:
 | Metodo y numero de grupos | K-Means, k = 6 (Silhouette 0.331) |
 | Perfiles | 4 grupos por genero y edad (ingreso 40-58 mil) y 2 de ingreso alto (~90 mil): uno gasta mucho (4) y otro poco (5) |
 | Cluster que mas llama la atencion | 5: ingreso alto y Spending Score de 18 |
-| Clasificador | Regresion Logistica (mejor en CV sobre train: 0.988) |
-| Desempeno | Accuracy 1.0 en test (40 de 40); 0.99 en CV sobre los 200 clientes |
+| Clasificador | SVM en Pipeline con StandardScaler, parametros con GridSearchCV (como en la lecture 9): kernel lineal, C = 1, 0.988 en CV sobre train |
+| Desempeno | Accuracy 0.95 en test (38 de 40); los 2 errores son clientes en el borde entre dos grupos |
 
 El accuracy alto dice que las fronteras entre clusters son rectas (asi los define K-Means), no
 que los grupos esten separados por espacios vacios: el Silhouette sigue en 0.33. El detalle y la
