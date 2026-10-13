@@ -33,13 +33,13 @@ El notebook lo lee como `../../data/Mall_Customers.csv`. La version actual del C
 - [x] Fase 2 (punto 4) - Agglomerative (ward): dendrograma + Silhouette para k = 2..10, k elegido
 - [x] Fase 3 (punto 5) - DBSCAN: k-distancias, grilla eps x min_samples, parametros elegidos
 - [x] Fase 4 (punto 6) - PCA a 3 componentes y grafico 3D por metodo
-- [ ] Fase 5 (punto 7) - Tabla comparativa final con Silhouette
-- [ ] Fase 6 (punto 8) - Clases naturales: cuantos grupos y con que metodo
-- [ ] Fase 7 (punto 9) - Perfilado de clusters (medias, medianas, boxplots, "personas")
-- [ ] Fase 8 (punto 10) - Cluster como variable objetivo
-- [ ] Fase 9 (punto 11) - Train/test estratificado + clasificador
-- [ ] Fase 10 (punto 12) - Accuracy, classification report, matriz de confusion
-- [ ] Reflexion final (punto 13)
+- [x] Fase 5 (punto 7) - Tabla comparativa final con Silhouette
+- [x] Fase 6 (punto 8) - Clases naturales: cuantos grupos y con que metodo
+- [x] Fase 7 (punto 9) - Perfilado de clusters (medias, medianas, boxplots, "personas")
+- [x] Fase 8 (punto 10) - Cluster como variable objetivo
+- [x] Fase 9 (punto 11) - Train/test estratificado + clasificador
+- [x] Fase 10 (punto 12) - Accuracy, classification report, matriz de confusion
+- [x] Reflexion final (punto 13)
 
 ## Reparto
 
@@ -72,5 +72,19 @@ Tres cosas a tener en cuenta al continuar:
    grupo). Vale la pena comentarlo en la Fase 6.
 3. **En DBSCAN el ruido es `-1`.** Si se usa DBSCAN en la Fase 7 o como target, hay que decidir
    que hacer con esos 25 clientes.
+
+## Resultado de las fases 5 a 10
+
+| Decision | Resultado |
+| --- | --- |
+| Metodo y numero de grupos | K-Means, k = 6 (Silhouette 0.331) |
+| Perfiles | 4 grupos por genero y edad (ingreso 40-58 mil) y 2 de ingreso alto (~90 mil): uno gasta mucho (4) y otro poco (5) |
+| Cluster que mas llama la atencion | 5: ingreso alto y Spending Score de 18 |
+| Clasificador | Regresion Logistica (mejor en CV sobre train: 0.988) |
+| Desempeno | Accuracy 1.0 en test (40 de 40); 0.99 en CV sobre los 200 clientes |
+
+El accuracy alto dice que las fronteras entre clusters son rectas (asi los define K-Means), no
+que los grupos esten separados por espacios vacios: el Silhouette sigue en 0.33. El detalle y la
+reflexion final estan al final del notebook.
 
 **Nota:** sustentacion aleatoria -> (Sustentacion+Entrega)/2
