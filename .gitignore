@@ -9,6 +9,7 @@ data/*.csv
 .DS_Store
 talleres/workshop1-eda/data/
 talleres/workshop2-ml/data/
+final-project/00_exploracion/data/raw/
 
 # Claude Code (no subir al repo)
 CLAUDE.md
