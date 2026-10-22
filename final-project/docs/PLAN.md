@@ -6,7 +6,7 @@
 
 ## Contexto
 
-La exploración (`00_exploracion/`) eligió SECOP II: predecir, al firmar un contrato, la probabilidad de que termine prorrogado, para que veedurías y oficinas de control interno prioricen qué vigilar. El profesor aprobó el tema y pidió **justificar bien cómo los datos del contrato predicen la prórroga y qué ingresa el usuario**. Ya hay señal (HGB 0,76 ROC-AUC / 0,33 PR-AUC en 2024 frente a 0,71 / 0,28 de la regla por entidad), pero la etiqueta subestima los positivos, hay censura y la tasa salta de 12 % a 20 % en 2025.
+La exploración (`00_exploracion/`) eligió SECOP II: predecir, al firmar un contrato, la probabilidad de que termine prorrogado, para que veedurías y oficinas de control interno prioricen qué vigilar. El profesor aprobó el tema y pidió **justificar bien cómo los datos del contrato predicen la prórroga y qué ingresa el usuario**. Hay señal, pero más modesta de lo que decía la exploración (sección 0, punto 9): con las features limpias el HGB da 0,751 ROC-AUC / 0,333 PR-AUC en 2024 frente a 0,714 / 0,277 de la regla por entidad. Además, la etiqueta subestima los positivos, hay censura y la tasa salta de 12 % a 20 % en 2025.
 
 **Fechas:**
 - Quedan **10 días**.
@@ -26,12 +26,17 @@ El paralelismo se apoya en cuatro **contratos** (sección 2) y en una **base v0*
 
 1. **La variante C de la exploración usó `p_visualizaciones_del`**, que está en la lista de fuga. Sus cifras (0,809 / 0,436 en 2024) pueden estar infladas; se recalculan sin esa columna antes de citarlas. [VERIFICADO en `exploracion_secop.ipynb`, `NUM_P`]
 2. **El bootstrap de la exploración remuestrea contratos**, que están correlacionados dentro de cada entidad, así que los intervalos son optimistas. Aquí se remuestrea **por entidad**.
-3. **Los 6 montos de fuentes de recursos** podrían incluir las adiciones, igual que `valor_del_contrato`. Quedan "por verificar". [SUPUESTO]
+3. **Los 6 montos de fuentes de recursos son fuga confirmada.** [VERIFICADO con la muestra de la exploración, firma 2019-2025] Su suma es igual a `valor_del_contrato` en el 80,6 % de los contratos y, en los contratos con un evento de adición en el valor, el cociente sobre el precio base es 1,26 (1,00 sin adición), igual que el de `valor_del_contrato`. Quedan fuera de `FEATURES` y dentro de `COLUMNAS_FUGA`.
 4. **La población 2019-2025 es de 4.501.433 contratos** (602.328 con días adicionados, 13,4 %) [VERIFICADO en `meta/poblacion_contratos_por_anio.csv`]. Se trabaja con una muestra del 10 % (sección 4.1).
 5. **Jose y Geronimo no tienen los datos de la exploración** (`data/` no se versiona). La base v0 se comparte por Drive/OneDrive con sha256.
 6. La rama base es **`master`**. `REGLAS_DEL_PROYECTO.md` dice `main` en las líneas 35 y 37; se corrige en el primer commit.
 7. **SHAP y las categorías nativas del HGB.** [VERIFICADO con datos sintéticos, `scikit-learn` 1.9.0 + `shap` 0.54.1] `TreeExplainer` sobre un `HistGradientBoostingClassifier` con códigos ordinales y sin categorías nativas es exacto (error de aditividad 0,0000). Con `categorical_features=mask` no lanza error, pero las atribuciones son incorrectas (error de aditividad máximo 13,6 log-odds, medio 5,4). La exploración entrenó el HGB con categorías nativas (`exploracion_secop.ipynb`: `categorical_features=mask` sobre un `OrdinalEncoder` limitado a las 200 categorías más frecuentes), así que las cifras de referencia (0,763 / 0,334) dependen de eso. En J2-J3 el equipo decide entre (a) mantener las nativas y explicar con `shap.Explainer` genérico sobre `predict_proba` (funcionó en la prueba; más lento) o (b) quitar las nativas y usar `TreeExplainer`, midiendo cuánto baja el PR-AUC. La decisión se documenta en el notebook con Decisión / Alternativas / Por qué / Evidencia.
 8. **Entorno.** Python 3.12 con venv en `final-project/.venv` y versiones fijas en `requirements.txt` (`scikit-learn` 1.9.0, `shap` 0.54.1, `streamlit` 1.66.1, `pytest` 9.1.1). El `requirements.txt` de la raíz dice Python 3.14.3; el del proyecto final usa 3.12 porque `shap` 0.54.1 exige Python ≥ 3.12 y es la versión instalada en la laptop de Kevin. Se omiten `jupyter` y `notebook`: traen `jupyterlab`, que no se instala en Windows sin rutas largas cuando la carpeta del repo es profunda (una ruta de 270 caracteres frente al límite de 260 en la carpeta de Kevin). `nbconvert` + `ipykernel` bastan para `jupyter nbconvert --execute` y para abrir notebooks en VS Code. **Pendiente:** Jose y Geronimo confirman que pueden usar Python 3.12 y Geronimo confirma que Streamlit Community Cloud lo ofrece [SUPUESTO].
+9. **Señal limpia medida en la F0.** [VERIFICADO; muestra de la exploración, train 2019-2023 y test 2024 con 23.999 contratos y tasa base 0,123; montaje de la exploración, HGB sin ajustar] Regla por entidad: 0,714 ROC-AUC / 0,277 PR-AUC. HGB sobre las 39 `FEATURES`: 0,751 / 0,333 (2,72 veces la tasa base). HGB A original, con los 6 montos: 0,763 / 0,334. El HGB limpio le gana a la regla por +0,037 de ROC-AUC (IC 95 % con bootstrap por entidad, 200 repeticiones: [+0,011, +0,069]) y +0,056 de PR-AUC ([+0,003, +0,113]).
+   - Los 6 montos inflan el resultado: quitarlos de la variante A baja el ROC-AUC de 0,763 a 0,742; sumarlos a las 39 `FEATURES` lo sube de 0,751 a 0,807 y el PR-AUC de 0,333 a 0,429, porque junto con el precio base delatan las adiciones de valor. Ese 0,807 / 0,429 se parece mucho a la variante C de la exploración (0,809 / 0,436), cuyas cifras probablemente están infladas por lo mismo y no se deben citar [SUPUESTO: C no se recalculó].
+   - "Limpio" significa sin la fuga confirmada. Con solo las 29 `FEATURES` seguras (sin las 10 "por verificar") la ventaja sobre la regla deja de ser clara: ROC-AUC +0,027 [-0,002, +0,060] y PR-AUC +0,038 [-0,013, +0,099]. Las 7 de competencia (H2) no aportan: quitarlas deja 0,750 / 0,334, así que lo que aportan las 10 viene de las otras 3 [SUPUESTO, por descarte].
+   - Los intervalos por entidad son mucho más anchos que los de la exploración, que remuestreaba contratos.
+10. **`el_contrato_puede_ser_prorrogado` queda excluida de `FEATURES`** (por verificar; es la más sospechosa por su nombre). [VERIFICADO] Su señal es débil: tasa de `y` de 0,188 con "Si" (34.351 contratos) frente a 0,107 con "No" (133.646), ROC-AUC univariado 0,561, con el mismo signo cada año de 2019 a 2025. Dentro de "Contratación régimen especial" la diferencia es grande (0,379 frente a 0,121) y en "Contratación directa" casi nula (0,118 frente a 0,107), así que se parece a un proxy de la modalidad. Solo el 31 % de los positivos tiene "Si", y su proporción baja de 31,8 % (2019) a 11,7 % (2025). Sigue en la base y se obtiene con `construir_features(df, con_excluidas=True)`; J3 la evalúa en la ablación.
 
 ---
 
@@ -106,7 +111,7 @@ Se usa igual en los dos lados:
 - App: `X = construir_features(unir_contrato_proceso(api.contrato(id), elegir_proceso(api.procesos(portafolio))))`.
 
 Familias de features v1, todas disponibles al firmar:
-- **Contrato:** tipo, modalidad y su justificación, UNSPSC por niveles (el formato del código está [NO VERIFICADO]), pago adelantado, origen y destino de los recursos, posconflicto, documentos tipo, tipo de documento del proveedor (solo el tipo), grupo/pyme, longitud del objeto.
+- **Contrato:** tipo, modalidad y su justificación, UNSPSC por segmento y familia (el código es `V1.` + 8 dígitos, o `UNSPECIFIED` en el 2,2 %; el `unspsc_6` de la exploración eran solo 3 dígitos) [VERIFICADO], pago adelantado, origen y destino de los recursos, posconflicto, documentos tipo, tipo de documento del proveedor (solo el tipo), grupo/pyme, longitud del objeto.
 - **Entidad y geografía:** NIT, sector, orden, rama, centralizada, departamento, ciudad.
 - **Calendario (H4):** mes, día de la semana, último trimestre, fin planeado que cruza el 31 de diciembre, días de firma a inicio.
 - **Proceso (H1, H2, H5):** log del precio base, duración planeada, días de publicación a firma, lotes, invitados, manifestaciones de interés, respuestas, proveedores únicos.
@@ -249,6 +254,7 @@ Supuesto: jornadas de ~8 h efectivas por persona y por día, fines de semana inc
 **F1. Verificación previa (vie 23)**
 - Rama: `data/verificacion-etiqueta`.
 - Tareas [MÍNIMO]:
+  - **Prioridad 1: verificar `fecha_de_inicio_del_contrato`** (de ella dependen `dias_firma_a_inicio` y `fin_planeado_cruza_anio`, que explican la ventaja del modelo sobre la regla; sección 0, punto 9). En la muestra de verificación de Modificaciones (4.3), comparar `fecha_inicio_contrato` de la primera versión con el valor actual de `fecha_de_inicio_del_contrato` en Contratos. Reportar el % de contratos en que cambia, separado por `y = 1` frente a `y = 0`. Si cambia más en `y = 1`, hay posible fuga y el equipo decide si esas dos features salen de `FEATURES`.
   - Leer el `robots.txt` completo de datos.gov.co, en un paso separado.
   - Verificación de la etiqueta (4.3): **máximo medio día**.
   - Contar contratos por último dígito y año.
@@ -292,7 +298,7 @@ Supuesto: jornadas de ~8 h efectivas por persona y por día, fines de semana inc
 **J1. Marco de evaluación (vie 23 - sáb 24)**
 - Rama: `feat/marco-evaluacion`.
 - Tareas [MÍNIMO]: implementar 2c con pruebas mínimas.
-- Listo cuando: con la base v0, la regla por entidad da ≈ 0,714 / 0,277 y el HGB A ≈ 0,763 / 0,334 en 2024 (±0,005, cifras de la exploración). El HGB de referencia usa categorías nativas (sección 0, punto 7); J1 reproduce ese montaje.
+- Listo cuando: con la base v0, la regla por entidad da ≈ 0,714 / 0,277 en 2024 (±0,005, cifras de la exploración) y el HGB sobre `FEATURES` da ≈ 0,751 / 0,333 (referencia nueva medida en la F0, sección 0, punto 9). Ese montaje usa categorías nativas sobre un `OrdinalEncoder` de las 200 categorías más frecuentes, `random_state=42` y el resto por defecto (sección 0, punto 7). El HGB A original (0,763 / 0,334) incluía los 6 montos y ya no es la referencia.
 
 **J2. Preprocesamiento (sáb 24 - lun 26)**
 - Rama: `feat/preprocesamiento`.
@@ -397,8 +403,8 @@ La etiqueta y la descarga ya tienen su salida en los límites de tiempo.
 **Contratos (`jbjy-vk9h`):**
 - Llaves y momento: `id_contrato`, `proceso_de_compra`, `referencia_del_contrato`, `fecha_de_firma`.
 - Entidad: `nombre_entidad`, `nit_entidad`, `departamento`, `ciudad`, `orden`, `sector`, `rama`, `entidad_centralizada`.
-- Diseño: `tipo_de_contrato`, `modalidad_de_contratacion`, `justificacion_modalidad_de`, `codigo_de_categoria_principal`, `objeto_del_contrato`, `es_grupo`, `es_pyme`, `tipodocproveedor`, `habilita_pago_adelantado`, `valor_de_pago_adelantado`, `origen_de_los_recursos`, `destino_gasto`, `espostconflicto`, `documentos_tipo`, `el_contrato_puede_ser_prorrogado` (por verificar).
-- Fuentes de recursos (por verificar): `presupuesto_general_de_la_nacion_pgn`, `sistema_general_de_participaciones`, `sistema_general_de_regal_as`, `recursos_propios_alcald_as_gobernaciones_y_resguardos_ind_genas_`, `recursos_de_credito`, `recursos_propios`.
+- Diseño: `tipo_de_contrato`, `modalidad_de_contratacion`, `justificacion_modalidad_de`, `codigo_de_categoria_principal`, `objeto_del_contrato`, `es_grupo`, `es_pyme`, `tipodocproveedor`, `habilita_pago_adelantado`, `valor_de_pago_adelantado`, `origen_de_los_recursos`, `destino_gasto`, `espostconflicto`, `documentos_tipo`, `el_contrato_puede_ser_prorrogado` (por verificar; excluida de `FEATURES`, sección 0, punto 10).
+- Fuentes de recursos (fuga confirmada; solo en `data/raw/` para el EDA de fuga, nunca en la base): `presupuesto_general_de_la_nacion_pgn`, `sistema_general_de_participaciones`, `sistema_general_de_regal_as`, `recursos_propios_alcald_as_gobernaciones_y_resguardos_ind_genas_`, `recursos_de_credito`, `recursos_propios`.
 - Fechas (por verificar): `fecha_de_inicio_del_contrato`, `duraci_n_del_contrato`.
 - Etiqueta: `dias_adicionados`.
 - Solo en `data/raw/` (EDA de fuga, nunca en la base): `fecha_de_fin_del_contrato`, `estado_contrato`, `valor_del_contrato`.
@@ -501,9 +507,9 @@ Columnas de la tabla: **Columna o derivado | Conjunto | Por qué es fuga | Evide
 | `dias_adicionados`; dataset Modificaciones | Etiqueta | Definen `y` | Solo etiqueta |
 | Procesos: visualizaciones, estados, fase, última publicación | Confirmada (reglas) | Estados actuales o acumulados | Ninguno |
 | Ejecución y Adiciones (datasets) | Confirmada | Posteriores a la firma | Ninguno |
-| 6 montos de fuentes de recursos | Por verificar | ¿Suman las adiciones? | Pendiente |
-| `fecha_de_inicio_del_contrato`, `duraci_n_del_contrato` | Por verificar | ¿Se actualizan? | Pendiente |
-| `el_contrato_puede_ser_prorrogado` | Por verificar | ¿Se edita después de la firma? | Pendiente |
+| 6 montos de fuentes de recursos | Confirmada | Su suma es igual a `valor_del_contrato` en el 80,6 %; cociente sobre el precio base de 1,26 con adición en el valor frente a 1,00 | Solo EDA |
+| `fecha_de_inicio_del_contrato`, `duraci_n_del_contrato` | Por verificar | ¿Se actualizan? Prioridad 1 de F1: % que cambia frente a la primera versión de Modificaciones, por `y` | Pendiente |
+| `el_contrato_puede_ser_prorrogado` | Por verificar, excluida | ¿Se edita después de la firma? ROC-AUC univariado 0,561 (sección 0, punto 10) | Solo ablación |
 | Conteos de competencia, `valor_total_adjudicacion` | Por verificar | ¿Cambian después de la firma? | Pendiente |
 
 ---
@@ -540,6 +546,7 @@ Los límites son de memoria y **[SUPUESTO]**; Geronimo los confirma con la docum
 | RAM en laptops | Procesar por mes, tipar, submuestra para kNN y SVM, `psutil` |
 | Censura | Fin planeado, solo contratos maduros, métricas por duración |
 | Fuga sutil | Columnas "por verificar", alarma de AUC univariado, variante C recalculada |
+| **La ventaja del modelo limpio sobre la regla por entidad es modesta** (ROC-AUC +0,037 [+0,011, +0,069]; PR-AUC +0,056 [+0,003, +0,113]) y depende de 3 features que usan `fecha_de_inicio_del_contrato`, que está por verificar. | Verificar esa fecha en F1 (prioridad 1); medir el desempeño en entidades no vistas y la precisión en los primeros *k*; etiqueta mejorada, muestra del 10 % y ajuste de hiperparámetros en J3. Si al final no gana con claridad, se reporta con honestidad y se evalúa el valor del modelo en entidades no vistas y su combinación con la regla. |
 | Entidades no vistas | `TargetEncoder` suavizado; IC por entidad; aviso en la app |
 | Deriva de 2025 | Test aparte; riesgo en percentil; G3 la usa como alarma |
 | Diferencias entre entrenamiento y app | Una sola `construir_features`; prueba de dtypes y paridad con 20 contratos |
