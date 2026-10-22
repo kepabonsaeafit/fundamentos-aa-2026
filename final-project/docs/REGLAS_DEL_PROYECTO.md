@@ -54,6 +54,7 @@ con datos personales.
 - Título en inglés con la misma convención del commit.
 - Descripción en español con estas secciones: **Qué cambia**, **Por qué**, **Cómo se verificó**, **Requisito del enunciado que cubre** (3.1–3.9) y **Pendientes**.
 - Todo PR lo revisa otro integrante antes del merge (squash merge). Nadie hace merge de su propio PR sin revisión.
+- Excepción: los PRs de cimientos y documentación de Kevin (F0 y docs) se mergean con la aprobación general del equipo, sin revisión formal.
 
 **Nunca se versionan:** datos (`data/`), credenciales o tokens, ni archivos pesados generados. Antes de cada commit, verifica con `git status` que no se cuele nada de eso.
 
