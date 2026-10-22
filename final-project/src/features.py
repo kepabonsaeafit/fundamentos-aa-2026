@@ -86,6 +86,51 @@ FEATURES_POR_VERIFICAR = [f[0] for f in _TABLA if f[4] == "por verificar"]
 FEATURES_EXCLUIDAS = [f[0] for f in _TABLA if f[4] == EXCLUIDA]
 _TIPO = {f[0]: ("object" if f[1] == "cat" else "float64") for f in _TABLA}
 
+# Feature -> texto para el usuario de la app (las explicaciones SHAP se muestran con estos nombres)
+NOMBRES_LEGIBLES = {
+    "tipo_de_contrato": "Tipo de contrato",
+    "modalidad_de_contratacion": "Modalidad de contratación",
+    "justificacion_modalidad_de": "Justificación de la modalidad",
+    "unspsc_segmento": "Segmento del bien o servicio (UNSPSC)",
+    "unspsc_familia": "Familia del bien o servicio (UNSPSC)",
+    "origen_de_los_recursos": "Origen de los recursos",
+    "destino_gasto": "Destino del gasto",
+    "espostconflicto": "Contrato de posconflicto",
+    "es_grupo": "Contratista es un grupo",
+    "es_pyme": "Contratista es una pyme",
+    "habilita_pago_adelantado": "Permite pago adelantado",
+    "documentos_tipo": "Usa documentos tipo",
+    "el_contrato_puede_ser_prorrogado": "Contrato prorrogable según el registro",
+    "tipodocproveedor": "Tipo de documento del contratista",
+    "nit_entidad": "Entidad contratante",
+    "sector": "Sector de la entidad",
+    "orden": "Orden de la entidad",
+    "rama": "Rama del poder público",
+    "entidad_centralizada": "Entidad centralizada",
+    "departamento": "Departamento",
+    "ciudad": "Ciudad",
+    "p_unidad_de_duracion": "Unidad en que se planeó la duración",
+    "log_pago_adelantado": "Valor del pago adelantado",
+    "len_objeto": "Longitud de la descripción del objeto",
+    "dias_firma_a_inicio": "Días entre la firma y el inicio",
+    "mes_firma": "Mes de la firma",
+    "dia_semana": "Día de la semana de la firma",
+    "firma_ultimo_trimestre": "Firmado en el último trimestre del año",
+    "fin_planeado_cruza_anio": "El plazo planeado cruza el cambio de año",
+    "log_precio_base": "Precio base del proceso",
+    "p_dur_dias": "Duración planeada (días)",
+    "dias_publicacion_a_firma": "Días entre la publicación del proceso y la firma",
+    "p_numero_de_lotes": "Número de lotes del proceso",
+    "p_proveedores_invitados": "Proveedores invitados",
+    "p_proveedores_con_invitacion": "Proveedores con invitación directa",
+    "p_proveedores_que_manifestaron": "Proveedores que manifestaron interés",
+    "p_respuestas_al_procedimiento": "Respuestas al procedimiento",
+    "p_respuestas_externas": "Respuestas de entes externos",
+    "p_conteo_de_respuestas_a_ofertas": "Respuestas directas en las ofertas",
+    "p_proveedores_unicos_con": "Proveedores únicos que redactaron respuestas",
+}
+assert set(NOMBRES_LEGIBLES) == set(FEATURES + FEATURES_EXCLUIDAS)
+
 # Fuga confirmada (espejo de docs/LISTA_FUGA.md): nunca entran como entrada ni como feature.
 # Los nombres de Procesos aparecen tambien con prefijo p_ (ver mas abajo).
 _FUGA_CONTRATOS = {
