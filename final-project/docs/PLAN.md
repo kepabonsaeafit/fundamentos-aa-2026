@@ -1,6 +1,6 @@
 # Plan del proyecto final: riesgo de prórroga en contratos públicos (SECOP II)
 
-> Versión 3 (2026-10-21), con el calendario, los recortes y los límites de tiempo de Kevin.
+> Versión 3.1, con el calendario, los recortes y los límites de tiempo de Kevin, y con el entorno y el hallazgo de SHAP de la F0 (sección 0, puntos 7 y 8, y lo que de ellos se deriva en F0, J1-J3, G1 y riesgos).
 > Leyenda: **[VERIFICADO]** visto en datos/código · **[SUPUESTO]** · **[ESTIMADO]** · **[NO EVALUADO]**.
 > Cada tarea va marcada **[MÍNIMO]** (necesaria para cumplir el enunciado) o **[EXTRA]** (fuera del alcance salvo que sobre tiempo).
 
@@ -30,6 +30,8 @@ El paralelismo se apoya en cuatro **contratos** (sección 2) y en una **base v0*
 4. **La población 2019-2025 es de 4.501.433 contratos** (602.328 con días adicionados, 13,4 %) [VERIFICADO en `meta/poblacion_contratos_por_anio.csv`]. Se trabaja con una muestra del 10 % (sección 4.1).
 5. **Jose y Geronimo no tienen los datos de la exploración** (`data/` no se versiona). La base v0 se comparte por Drive/OneDrive con sha256.
 6. La rama base es **`master`**. `REGLAS_DEL_PROYECTO.md` dice `main` en las líneas 35 y 37; se corrige en el primer commit.
+7. **SHAP y las categorías nativas del HGB.** [VERIFICADO con datos sintéticos, `scikit-learn` 1.9.0 + `shap` 0.54.1] `TreeExplainer` sobre un `HistGradientBoostingClassifier` con códigos ordinales y sin categorías nativas es exacto (error de aditividad 0,0000). Con `categorical_features=mask` no lanza error, pero las atribuciones son incorrectas (error de aditividad máximo 13,6 log-odds, medio 5,4). La exploración entrenó el HGB con categorías nativas (`exploracion_secop.ipynb`: `categorical_features=mask` sobre un `OrdinalEncoder` limitado a las 200 categorías más frecuentes), así que las cifras de referencia (0,763 / 0,334) dependen de eso. En J2-J3 el equipo decide entre (a) mantener las nativas y explicar con `shap.Explainer` genérico sobre `predict_proba` (funcionó en la prueba; más lento) o (b) quitar las nativas y usar `TreeExplainer`, midiendo cuánto baja el PR-AUC. La decisión se documenta en el notebook con Decisión / Alternativas / Por qué / Evidencia.
+8. **Entorno.** Python 3.12 con venv en `final-project/.venv` y versiones fijas en `requirements.txt` (`scikit-learn` 1.9.0, `shap` 0.54.1, `streamlit` 1.66.1, `pytest` 9.1.1). El `requirements.txt` de la raíz dice Python 3.14.3; el del proyecto final usa 3.12 porque `shap` 0.54.1 exige Python ≥ 3.12 y es la versión instalada en la laptop de Kevin. Se omiten `jupyter` y `notebook`: traen `jupyterlab`, que no se instala en Windows sin rutas largas cuando la carpeta del repo es profunda (una ruta de 270 caracteres frente al límite de 260 en la carpeta de Kevin). `nbconvert` + `ipykernel` bastan para `jupyter nbconvert --execute` y para abrir notebooks en VS Code. **Pendiente:** Jose y Geronimo confirman que pueden usar Python 3.12 y Geronimo confirma que Streamlit Community Cloud lo ofrece [SUPUESTO].
 
 ---
 
@@ -135,7 +137,8 @@ def evaluar(estimador, base, anio_test) -> dict                           # {"sc
 ```
 models/modelo_prorroga_v1.joblib     # Pipeline completo; recibe construir_features(...)
 models/modelo_prorroga_v1.json       # metadatos
-models/modelo_prorroga_dummy.joblib  # HGB por defecto sobre la base v0, para Geronimo (+ su .json)
+models/modelo_prorroga_dummy.joblib  # HGB por defecto sobre la base v0, con las categorías como códigos numéricos
+                                     # (sin categorías nativas, ver sección 0, punto 7), para Geronimo (+ su .json)
 ```
 
 - **Versión:** basta con una sola, la v1. El versionado SemVer queda como [EXTRA]; la estrategia de reajuste (3.9) describe cómo se numeraría una v2.
@@ -231,11 +234,11 @@ Supuesto: jornadas de ~8 h efectivas por persona y por día, fines de semana inc
 ### Kevin
 
 **F0. Cimientos y contratos (jue 22)**
-- Ramas: `chore/estructura-proyecto` y `feat/contratos-interfaces`.
+- Rama: `feat/cimientos` (una sola para toda la F0, con commits separados por paso).
 - Tareas [MÍNIMO]:
-  - Ubicar el venv del repo (si no existe, preguntarte antes de crearlo).
-  - `requirements.txt` con versiones fijas, incluidos `streamlit`, `shap` y `pytest` (autorizados).
-  - `final-project/.gitignore` con `data/`, `.env` y `.streamlit/secrets.toml`.
+  - Ubicar el venv del repo (si no existe, preguntarte antes de crearlo). No existía: se creó `final-project/.venv` con Python 3.12.10.
+  - `requirements.txt` con versiones fijas, incluidos `streamlit`, `shap` y `pytest` (autorizados); ver la sección 0, punto 8.
+  - `final-project/.gitignore` con `data/`, `.env` y `**/.streamlit/secrets.toml`, y `final-project/.gitattributes` con `* text=auto`.
   - `src/config.py`: IDs de los datasets, semilla y **lista PII ampliada**.
   - `src/features.py` y `src/uniones.py`, portados de la exploración sin `visualizaciones_del`.
   - Base v0, modelo dummy y `tests/test_contratos.py` (las 3 verificaciones).
@@ -289,11 +292,11 @@ Supuesto: jornadas de ~8 h efectivas por persona y por día, fines de semana inc
 **J1. Marco de evaluación (vie 23 - sáb 24)**
 - Rama: `feat/marco-evaluacion`.
 - Tareas [MÍNIMO]: implementar 2c con pruebas mínimas.
-- Listo cuando: con la base v0, la regla por entidad da ≈ 0,714 / 0,277 y el HGB A ≈ 0,763 / 0,334 en 2024 (±0,005, cifras de la exploración).
+- Listo cuando: con la base v0, la regla por entidad da ≈ 0,714 / 0,277 y el HGB A ≈ 0,763 / 0,334 en 2024 (±0,005, cifras de la exploración). El HGB de referencia usa categorías nativas (sección 0, punto 7); J1 reproduce ese montaje.
 
 **J2. Preprocesamiento (sáb 24 - lun 26)**
 - Rama: `feat/preprocesamiento`.
-- Tareas [MÍNIMO]: `ColumnTransformer` por familia de modelo (categorías nativas para HGB; one-hot + escalado para kNN y SVM; `TargetEncoder` para la entidad), faltantes y atípicos, todo justificado.
+- Tareas [MÍNIMO]: `ColumnTransformer` por familia de modelo (categorías nativas para HGB; one-hot + escalado para kNN y SVM; `TargetEncoder` para la entidad), faltantes y atípicos, todo justificado. Para el HGB deja listas las dos variantes (con y sin categorías nativas), porque J3 las compara por su efecto en SHAP (sección 0, punto 7).
 - Listo cuando: todo vive en el `Pipeline` y se ajusta solo con train. Ese `Pipeline` es el que Geronimo usa en G3.
 
 **J3. Modelado y selección (lun 26 - jue 29)**
@@ -304,6 +307,7 @@ Supuesto: jornadas de ~8 h efectivas por persona y por día, fines de semana inc
   - Variante C sin `visualizaciones_del`.
   - Test 2024 una sola vez; deriva 2025 (i) y, si da el tiempo, (ii).
   - **SHAP global enlazado a H1-H7**; sensibilidad `y` frente a `y_dias`.
+  - **Decisión sobre categorías nativas y SHAP (sección 0, punto 7):** medir el PR-AUC del HGB con y sin categorías nativas y elegir (a) o (b). El artefacto v1 y la app usan el mismo explicador, y se verifica la aditividad de SHAP en el modelo final.
   - Resultados de la búsqueda guardados en `resultados/`; artefacto v1.
   - Decidir si el modelo de producción se reentrena con 2019-2025.
 - Tareas [EXTRA]: complemento no supervisado del 3.4; curva de aprendizaje para decidir la ampliación al 20 %.
@@ -327,8 +331,9 @@ Supuesto: jornadas de ~8 h efectivas por persona y por día, fines de semana inc
   - **Prueba de SHAP con el dummy sobre el Pipeline (vie 23):**
     - `TreeExplainer` sobre el estimador final, con `pipeline[:-1].transform(X)` y `get_feature_names_out()`.
     - Agregar las columnas transformadas a la feature original y traducirlas con `nombres_legibles`.
-    - Plan B si `TreeExplainer` no soporta el HGB con categorías nativas: explicador por permutación sobre el Pipeline completo con las features originales [SUPUESTO; se verifica con la documentación de shap vía ctx7].
-    - **Fijar un par shap/scikit-learn compatible y probado a más tardar el sábado 24**, antes de que nadie entrene modelos que se guarden.
+    - **Verificar la aditividad, no solo que corra:** la suma de los valores SHAP más el valor base debe igualar la salida que se explica (log-odds con `decision_function` en `TreeExplainer`), con error máximo < 1e-3. [VERIFICADO con datos sintéticos] `TreeExplainer` sobre un HGB con categorías nativas no lanza error pero da atribuciones incorrectas (error hasta 13,6 log-odds); sin categorías nativas es exacto. El dummy (HGB por defecto sobre códigos numéricos) no está afectado.
+    - Si el modelo final usa categorías nativas: explicar con `shap.Explainer` genérico sobre `predict_proba` del Pipeline (funcionó en la prueba sintética; más lento) y repetir la prueba de aditividad.
+    - **Par fijado en la F0:** `scikit-learn` 1.9.0 + `shap` 0.54.1 (sección 0, punto 8). Si G1 encuentra un problema con el par, se avisa antes del sábado 24, antes de que nadie entrene modelos que se guarden.
   - Prueba de paridad API frente a base con 20 contratos (script, no test automático).
 - Listo cuando: la app corre en local con 5 contratos reales y muestra 3-5 factores en español.
 
@@ -528,7 +533,7 @@ Los límites son de memoria y **[SUPUESTO]**; Geronimo los confirma con la docum
 | **Disponibilidad del equipo** | Supuesto de 8 h/día por persona sin confirmar; Kevin confirma la disponibilidad real del equipo el miércoles 21. Si es menor, se aplica el orden de recortes de la sección 3. |
 | **Fin de semana de Kevin (F2 + F3): camino crítico con dependencia externa** | `descarga.py` probado el viernes; Contratos y Procesos temprano el sábado; corte duro el domingo a las 22:00 con `y = y_dias`; tope de 3 h |
 | **Integración en un solo día (vie 30)** | Borradores en formato final el jueves por la noche; esqueleto del notebook el jueves; resultados de la búsqueda guardados; ejecución ≤ 20 min; revisión de Kevin el viernes por la noche |
-| **SHAP no funciona sobre el Pipeline** o versiones incompatibles entre shap y scikit-learn | Prueba con el dummy el vie 23; plan B por permutación; par de versiones fijado a más tardar el sáb 24; los metadatos guardan las versiones |
+| **SHAP da atribuciones incorrectas sin avisar:** `TreeExplainer` con las categorías nativas del HGB (error de aditividad hasta 13,6 log-odds) [VERIFICADO con datos sintéticos] | Prueba de aditividad obligatoria en G1 y en el modelo final; decisión (a) `shap.Explainer` genérico o (b) sin categorías nativas, medida en J3; par fijado en la F0 (`scikit-learn` 1.9.0 + `shap` 0.54.1); los metadatos guardan las versiones |
 | Límite de uso de la API | App Token; `Throttled`; caché reanudable; ≤ 3 hilos |
 | `Crawl-delay: 1` aplica a la API | Se lee en F1; si F2 pasa de 3 h, se baja al 5 % |
 | Etiqueta no concluyente | Medio día como máximo; si no alcanza, `y_dias` con la limitación documentada |
@@ -574,7 +579,7 @@ Los límites son de memoria y **[SUPUESTO]**; Geronimo los confirma con la docum
 | Día | Qué se verifica |
 |---|---|
 | Jue 22 | `pytest tests/test_contratos.py` pasa con la base v0 en las tres laptops |
-| Vie 23 | SHAP muestra 3-5 factores legibles con el dummy |
+| Vie 23 | SHAP muestra 3-5 factores legibles con el dummy y la aditividad cumple (error máximo < 1e-3) |
 | Sáb 24 | J1 reproduce las cifras de la exploración con la base v0 |
 | Dom 25 | `calidad.py` sin errores con la base v1 |
 | Jue 29 | El artefacto v1 pasa `cargar_modelo` y la app desplegada lo usa |
