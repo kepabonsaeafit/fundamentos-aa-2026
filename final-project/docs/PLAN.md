@@ -51,6 +51,7 @@ El paralelismo se apoya en cuatro **contratos** (sección 2) y en una **base v0*
 
    - **La regla con m=0 es un rival débil en el top-k:** m se eligió por ROC-AUC y el top 1 % queda dominado por entidades con 1 de 1 positivos. Con la regla suavizada (sensibilidad medida en test, no para elegir m) la precisión sube: m=5 da 0,537 / 0,462 / 0,330 y m=20 da 0,537 / 0,468 / 0,343. Con m ≥ 5 el HGB solo gana claramente en el top 1 % (0,654 frente a 0,537); en el 5 % pierde frente a la regla (0,441 frente a 0,46-0,47) y en el 10 % queda casi igual. La ventaja del modelo en el top-k está solo en el 1 % más alto (240 contratos, intervalo ancho). `elegir_m` de J1 debe considerar también la precisión en el top-k.
    - **Códigos ordinales frente a categorías nativas** (contratos maduros de 2024): HGB nativo con las 200 categorías más frecuentes 0,752 / 0,336; HGB con códigos ordinales (el dummy, sin early stopping) 0,766 / 0,344. Los códigos no pierden en esta muestra (una sola corrida, sin intervalo); alimenta la decisión (a)/(b) del punto 7.
+   - **ROC-AUC dentro de entidad:** probabilidad de que, entre un contrato prorrogado y uno no prorrogado de la misma entidad, el modelo puntúe más alto al prorrogado (empates 0,5). Se calcula sobre los 501.046 pares de las 486 entidades del test 2024 que tienen ambas clases. La regla por entidad da 0,500 por construcción (puntaje constante dentro de la entidad). HGB limpio: **0,612 [0,524, 0,685]** ponderando por pares y **0,633 [0,609, 0,657]** promediando por entidad (intervalos con bootstrap por entidad). Con solo las entidades de 20 o más contratos (179, el 99 % de los pares) da 0,612 [0,524, 0,686]. El efecto es moderado y ambos intervalos excluyen 0,50, pero con solo las 29 features seguras el intervalo por pares incluye 0,50 (0,592 [0,473, 0,670]; por entidad 0,637 [0,609, 0,661]). Es lo que ve una veeduría que revisa los contratos de una sola entidad, y la regla no puede aportar nada ahí.
    - **Madurez:** filtrar por `eval_madura` casi no cambia las referencias (regla 0,714 → 0,715; HGB 0,751 → 0,752), porque la duración planeada mediana es de 120 días y el 97-99 % de los contratos de 2019-2025 ya venció.
 
 ---
@@ -65,7 +66,7 @@ El paralelismo se apoya en cuatro **contratos** (sección 2) y en una **base v0*
 | 3.4 Paradigma | ≥ 1 paradigma | Notebook §3.4: supervisado (clasificación). [EXTRA] complemento no supervisado | Jose |
 | 3.5 Metodología y selección | Alternativas, comparación, hiperparámetros | Notebook §3.5 con folds temporales: kNN, árbol, RF, HGB, SVM | Jose |
 | 3.6 Generalización | Datos no vistos, sin sobreajuste ni fuga | Notebook §3.6: test 2024 usado una vez, deriva 2025, entidades no vistas, `docs/LISTA_FUGA.md`, contraste "con fuga", SHAP global enlazado a H1-H7 | Jose (+Kevin en fuga) |
-| 3.7 Métricas | Justificadas en términos de uso | Notebook §3.7: PR-AUC, precisión/recall en top-k, tasa base, regla por entidad | Jose |
+| 3.7 Métricas | Justificadas en términos de uso | Notebook §3.7: PR-AUC, precisión/recall en top-k, ROC-AUC dentro de entidad (la regla da 0,5 por construcción; sección 0, punto 11), tasa base, regla por entidad | Jose |
 | 3.8 Despliegue | Interfaz para no técnicos | `app/` + URL pública + notebook §3.8 (arquitectura, flujo, capturas) | Geronimo |
 | 3.9 Reajuste | Detectar degradación, criterio, frecuencia, validar y promover | `src/monitoreo.py` + notebook §3.9 | Geronimo |
 | Notebook | `model_development.ipynb` ejecutado | Raíz de `final-project/` | **Jose integra; Kevin revisa** |
@@ -142,6 +143,7 @@ def regla_tasa_base(y_train, n) -> np.ndarray
 def regla_tasa_entidad(ent_train, y_train, ent_test, m) -> np.ndarray     # (pos + m*p0)/(n + m); no vistas -> p0
 def elegir_m(ent, y, anios) -> float                                      # validación temporal dentro del train; ROC-AUC y precisión en el top-k (sección 0, punto 11)
 def metricas(y_true, score, fracciones_k=(0.01, 0.05, 0.10)) -> dict      # n, tasa_base, pr_auc, roc_auc, pr_auc/base, P@k, R@k
+def roc_auc_intra_entidad(y_true, score, entidad) -> dict                 # por pares y promedio por entidad; la regla por entidad da 0,5
 def comparar(y_true, scores: dict, entidad, referencia="regla_entidad", n_boot=200, seed=42) -> pd.DataFrame
     # métricas + diferencia contra la referencia con IC 95 % (bootstrap POR ENTIDAD)
 def evaluar_por_grupo(y_true, score, grupo) -> pd.DataFrame               # duración planeada, entidad vista/no vista
@@ -317,6 +319,7 @@ Supuesto: jornadas de ~8 h efectivas por persona y por día, fines de semana inc
   - Implementar 2c con pruebas mínimas.
   - `elegir_m` considera ROC-AUC y precisión en el top-k, y se reporta la regla suavizada junto a la de m=0 (sección 0, punto 11): con m=0 la regla es un rival débil en el top 1 %.
   - Reportar el desempeño en entidades no vistas y la precisión y el recall en el top 1, 5 y 10 % (referencias en la sección 0, punto 11).
+  - Implementar `roc_auc_intra_entidad(y_true, score, entidad)`, que devuelve la versión ponderada por pares y el promedio por entidad (solo entidades con ambas clases), con IC por bootstrap de entidades. Referencia con el HGB limpio en 2024: 0,612 [0,524, 0,685] por pares y 0,633 [0,609, 0,657] por entidad; la regla da 0,5.
 - Listo cuando: con la base v0, la regla por entidad da ≈ 0,714 / 0,277 en 2024 (±0,005, cifras de la exploración) y el HGB sobre `FEATURES` da ≈ 0,751 / 0,333 (referencia nueva medida en la F0, sección 0, punto 9). Ese montaje usa categorías nativas sobre un `OrdinalEncoder` de las 200 categorías más frecuentes, `random_state=42` y el resto por defecto (sección 0, punto 7). El HGB A original (0,763 / 0,334) incluía los 6 montos y ya no es la referencia.
 
 **J2. Preprocesamiento (sáb 24 - lun 26)**
