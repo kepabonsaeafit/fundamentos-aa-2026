@@ -42,7 +42,23 @@ Si la prórroga refleja con frecuencia una planeación deficiente, las señales 
 
 ## 4. ¿Por qué Machine Learning y no una regla simple?
 
-La alternativa más simple sería asumir que cada entidad repite su hábito: si una entidad suele prorrogar, sus contratos son riesgosos. En la exploración, esa regla ya captura parte de la señal (ROC-AUC 0,71 en 2024). Un modelo que combina las variables del contrato y del proceso de selección la supera de forma consistente (ROC-AUC cercano a 0,81). Además, funciona con entidades que nunca vio en el entrenamiento, donde la regla simple no tiene información (*preliminar*). El valor del ML está en cruzar muchas señales de planeación que ninguna regla individual captura.
+La alternativa más simple sería asumir que cada entidad repite su hábito: si una entidad suele prorrogar, sus contratos son riesgosos. Esa regla ya captura parte de la señal. Un modelo que combina las variables del contrato y del proceso de selección la supera, **pero por un margen modesto**. Cifras sobre contratos firmados en 2024 (23.999 contratos, tasa base de 0,123), con el modelo entrenado solo con 2019-2023 y usando únicamente variables disponibles al firmar (*preliminar*; intervalos de confianza del 95 % por remuestreo de entidades):
+
+| | ROC-AUC | PR-AUC |
+|---|---|---|
+| Regla: tasa histórica de la entidad | 0,714 | 0,277 |
+| Modelo (Gradient Boosting sin ajustar) | 0,751 | 0,333 |
+| Diferencia | +0,037 [+0,011, +0,069] | +0,056 [+0,003, +0,113] |
+
+Una versión anterior de este documento citaba un ROC-AUC cercano a 0,81. Esa cifra incluía variables que resultaron ser fuga de información (los montos por fuente de recursos suman el valor final del contrato, que ya incluye las adiciones) y se descartó.
+
+Lo que sabemos hasta ahora sobre dónde aporta el modelo, con sus límites:
+
+- **Entidades que no vio en el entrenamiento** (235 entidades, 804 contratos, 55 prorrogados). La regla no tiene información sobre ellas y queda en ROC-AUC 0,5 por construcción. El modelo alcanza un ROC-AUC de 0,708 [0,584, 0,800] y un PR-AUC de 0,180 frente a una tasa base de 0,068. El intervalo es ancho porque son pocos contratos.
+- **Contratos de mayor riesgo.** En el 1 % de contratos con mayor puntaje (240), el 65 % terminó prorrogado [51 %, 78 %], frente al 44 % de la regla simple [17 %, 53 %] (el 54 % si la regla se suaviza para entidades con pocos contratos). En el 5 % y el 10 % de mayor puntaje la diferencia con la regla no se distingue de cero.
+- **Variables por verificar.** Parte de la ventaja depende de variables que aún se están verificando, entre ellas la fecha de inicio del contrato. Con solo las variables ya verificadas, la diferencia con la regla en ROC-AUC (+0,027 [-0,002, +0,060]) y en PR-AUC (+0,038 [-0,013, +0,099]) no es clara.
+
+Estas cifras salen de una muestra del 4 % de los contratos, con la etiqueta inicial (que subestima los positivos) y sin ajustar el modelo. Se rehacen con la muestra del 10 %, la etiqueta mejorada y el modelo ajustado, y el notebook reporta el resultado final con honestidad, aunque la ventaja resulte pequeña. El valor del ML es cruzar señales de planeación que ninguna regla individual captura y poder puntuar contratos de entidades sin historial.
 
 ## 5. Usuarios y decisión que apoya
 

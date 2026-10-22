@@ -1,0 +1,6 @@
+# Datos: nunca se versionan (ver docs/REGLAS_DEL_PROYECTO.md)
+data/
+
+# Credenciales y secretos: el repositorio es publico
+.env
+**/.streamlit/secrets.toml

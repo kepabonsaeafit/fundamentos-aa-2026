@@ -1,0 +1,40 @@
+# Entorno del proyecto final - Riesgo de prorroga en contratos publicos (SECOP II)
+# Versiones fijas para que todo el equipo obtenga los mismos resultados.
+# Python 3.12 (shap 0.54.1 exige Python >= 3.12). Resuelto con pip sobre Python 3.12.10 / Windows.
+#
+#   py -3.12 -m venv .venv
+#   .venv\Scripts\activate          (CMD de Windows)
+#   pip install -r requirements.txt
+
+# Datos y modelos (mismas versiones que la exploracion)
+numpy==2.5.1
+pandas==3.0.5
+scipy==1.18.1
+scikit-learn==1.9.0
+joblib==1.6.0
+pyarrow==26.0.0
+
+# Graficas
+matplotlib==3.11.1
+seaborn==0.13.2
+
+# Descarga y control de recursos
+requests==2.34.2
+psutil==7.2.2
+
+# Notebooks (jupyter nbconvert --execute). No se incluyen 'jupyter' ni 'notebook': traen
+# jupyterlab, que no se instala en Windows sin rutas largas cuando la carpeta del repo es
+# profunda (una ruta pasa de 260 caracteres). nbconvert + ipykernel bastan para ejecutar
+# los notebooks y abrirlos en VS Code.
+ipykernel==7.3.0
+nbconvert==7.17.2
+nbformat==5.11.1
+
+# Nuevas en el proyecto final
+# shap: par con scikit-learn==1.9.0. shap no limita la version de scikit-learn,
+#       pide numpy>=2 y Python>=3.12. Su soporte del HistGradientBoostingClassifier
+#       se prueba con el modelo dummy (tests y G1).
+shap==0.54.1
+# streamlit: acepta pandas<4 y pyarrow<27, por eso caben pandas 3.0.5 y pyarrow 26.0.0.
+streamlit==1.66.1
+pytest==9.1.1
