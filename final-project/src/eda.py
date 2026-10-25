@@ -489,6 +489,18 @@ def intervalo_wilson(k, n, z=1.96):
     return centro - margen, centro + margen
 
 
+def tasas_en_pct(tabla):
+    """Copia de una tabla de tasas con las proporciones expresadas en porcentaje."""
+    t = tabla.copy()
+    columnas = ["tasa", "ic_inf", "ic_sup", "tasa_hist_min", "tasa_hist_mediana",
+                "tasa_hist_max", "tasa_min", "tasa_mediana", "tasa_max"]
+    for col in columnas:
+        if col in t.columns:
+            t[f"{col}_pct"] = 100 * t[col]
+            t = t.drop(columns=col)
+    return t
+
+
 def tasa_por_grupo(df, grupo, col_y="y"):
     """Tasa de y por grupo con n, positivos e intervalo de Wilson al 95 %.
 
@@ -500,7 +512,7 @@ def tasa_por_grupo(df, grupo, col_y="y"):
     else:
         g = grupo
         nombre = getattr(g, "name", "grupo") or "grupo"
-    datos = pd.DataFrame({"grupo": g, "y": df[col_y]})
+    datos = pd.DataFrame({"grupo": g, "y": df[col_y]}).dropna(subset=["y"])
     tabla = (datos.groupby("grupo", dropna=False)["y"]
              .agg(n="size", positivos="sum")
              .reset_index())
@@ -513,8 +525,11 @@ def tasa_por_grupo(df, grupo, col_y="y"):
 
 
 def graficar_tasa_por_grupo(tabla, col_grupo=None, titulo="Tasa de y por grupo", orden=None,
-                            horizontal=False, ax=None):
-    """Barras con la tasa de y y su intervalo de Wilson."""
+                            horizontal=False, ax=None, mostrar_n=True):
+    """Barras con la tasa de y y su intervalo de Wilson.
+
+    `mostrar_n=False` omite las etiquetas con el tamano de cada grupo.
+    """
     if col_grupo is None:
         col_grupo = tabla.columns[0]
     t = tabla.copy()
@@ -535,18 +550,21 @@ def graficar_tasa_por_grupo(tabla, col_grupo=None, titulo="Tasa de y por grupo",
         ax.set_yticks(x)
         ax.set_yticklabels([str(v) for v in t[col_grupo]], fontsize=7)
         ax.set_xlabel("tasa de y (%)")
+        ax.set_xlim(0, max(100 * t["ic_sup"].max() * 1.3, 5))
+        ax.invert_yaxis()
     else:
         ax.bar(x, y, yerr=err, color="#4c72b0", capsize=3)
         ax.set_xticks(x)
         ax.set_xticklabels([str(v) for v in t[col_grupo]], rotation=30, ha="right", fontsize=7)
         ax.set_ylabel("tasa de y (%)")
-    for i, r in t.iterrows():
-        if horizontal:
-            ax.text(r["tasa"] * 100 + 0.5, i, f"n={r['n']:,}", va="center", fontsize=6)
-        else:
-            ax.text(i, r["ic_sup"] * 100 + 0.4, f"n={r['n']:,}", ha="center", fontsize=6)
+        ax.set_ylim(0, max(100 * t["ic_sup"].max() * 1.2, 5))
+    if mostrar_n:
+        for i, r in t.iterrows():
+            if horizontal:
+                ax.text(r["ic_sup"] * 100 + 0.5, i, f"n={r['n']:,}", va="center", fontsize=6)
+            else:
+                ax.text(i, r["ic_sup"] * 100 + 0.4, f"n={r['n']:,}", ha="center", fontsize=6)
     ax.set_title(titulo)
-    ax.set_ylim(0, max(100 * t["ic_sup"].max() * 1.2, 5))
     plt.tight_layout()
     return fig, ax
 
@@ -577,19 +595,160 @@ def tasa_entidad_historica(df, col_entidad="nit_entidad", col_y="y", col_anio="a
                            anio_objetivo=2024, n_grupos=5):
     """Tasa historica de la entidad con anios anteriores y tasa observada en el anio objetivo.
 
-    Evita fuga temporal: para cada contrato del anio objetivo usa solo la tasa de su entidad en
-    anios < anio_objetivo. Las entidades sin historia van a un grupo aparte.
+    Para cada contrato del anio objetivo, la tasa historica de su entidad se calcula solo con
+    contratos de esa entidad en anios estrictamente anteriores a `anio_objetivo` (por ejemplo,
+    2019-2023 para 2024). No incluye contratos del mismo anio ni el propio contrato; es una
+    ventana anual, no un expanding window dentro del anio. Las entidades sin historia van a un
+    grupo aparte. Los grupos se arman sobre el rank de la tasa (method="first") para que los
+    empates no colapsen los quintiles.
     """
-    hist = (df[df[col_anio] < anio_objetivo]
+    datos = df[df[col_y].notna()]
+    hist = (datos[datos[col_anio] < anio_objetivo]
             .groupby(col_entidad)[col_y]
             .agg(positivos="sum", n="size"))
     hist["tasa"] = hist["positivos"] / hist["n"]
+    etiquetas = [f"Q{i}" for i in range(1, n_grupos + 1)]
     try:
-        hist["grupo"] = pd.qcut(hist["tasa"], q=n_grupos, duplicates="drop")
+        hist["grupo"] = pd.qcut(hist["tasa"].rank(method="first"), q=n_grupos, labels=etiquetas)
     except ValueError:
+        etiquetas = ["Unico"]
         hist["grupo"] = "Unico"
-    objetivo = df[df[col_anio] == anio_objetivo].copy()
+    orden = etiquetas + ["Sin historia"]
+    objetivo = datos[datos[col_anio] == anio_objetivo].copy()
     objetivo["grupo_hist"] = objetivo[col_entidad].map(hist["grupo"])
     objetivo["grupo_hist"] = objetivo["grupo_hist"].astype("object").fillna("Sin historia")
+    objetivo["grupo_hist"] = pd.Categorical(objetivo["grupo_hist"], categories=orden, ordered=True)
     tabla = tasa_por_grupo(objetivo, "grupo_hist", col_y)
+    entidades = objetivo.groupby("grupo_hist", observed=False)[col_entidad].nunique()
+    tabla["n_entidades"] = tabla["grupo_hist"].map(entidades).astype("Int64")
+    stats_hist = hist.groupby("grupo", observed=False)["tasa"].agg(["min", "median", "max"])
+    stats_hist.columns = ["tasa_hist_min", "tasa_hist_mediana", "tasa_hist_max"]
+    for col in stats_hist.columns:
+        tabla[col] = tabla["grupo_hist"].astype("object").map(stats_hist[col])
     return tabla, hist
+
+
+def comparar_etiquetas(df, etiquetas=("y", "y_dias"), col_anio="anio_firma"):
+    """Tasa de cada etiqueta por anio, con n validos, positivos e intervalo de Wilson."""
+    faltantes = [c for c in etiquetas if c not in df.columns]
+    if faltantes:
+        raise KeyError(f"Etiquetas ausentes: {faltantes}")
+    filas = []
+    for anio, g in df.groupby(col_anio, dropna=False):
+        for etiqueta in etiquetas:
+            s = g[etiqueta]
+            validos = s.notna()
+            n_validos = int(validos.sum())
+            positivos = int(s[validos].sum()) if n_validos else 0
+            inf, sup = intervalo_wilson(positivos, n_validos)
+            filas.append({
+                col_anio: anio,
+                "etiqueta": etiqueta,
+                "n": len(g),
+                "n_validos": n_validos,
+                "positivos": positivos,
+                "tasa": positivos / n_validos if n_validos else np.nan,
+                "ic_inf": inf,
+                "ic_sup": sup,
+            })
+    return pd.DataFrame(filas)
+
+
+def discrepancias_etiquetas(df, col_a="y", col_b="y_dias", col_anio="anio_firma"):
+    """Conteo de acuerdos y discrepancias entre dos etiquetas binarias por anio."""
+    filas = []
+    for anio, g in df.groupby(col_anio, dropna=False):
+        a, b = g[col_a], g[col_b]
+        validos = a.notna() & b.notna()
+        filas.append({
+            col_anio: anio,
+            "n": len(g),
+            "comparables": int(validos.sum()),
+            "a_1_b_0": int(((a == 1) & (b == 0) & validos).sum()),
+            "a_0_b_1": int(((a == 0) & (b == 1) & validos).sum()),
+            "iguales": int((validos & (a == b)).sum()),
+        })
+    return pd.DataFrame(filas)
+
+
+def graficar_comparacion_etiquetas(tabla, col_anio="anio_firma",
+                                   titulo="Tasa por anio: y frente a y_dias"):
+    """Lineas con intervalo de Wilson para cada etiqueta de una tabla larga."""
+    fig, ax = plt.subplots(figsize=(7, 3.6))
+    estilos = ["o-", "s--", "^:"]
+    for i, (etiqueta, g) in enumerate(tabla.groupby("etiqueta", sort=False)):
+        if g["tasa"].isna().all():
+            continue
+        g = g.sort_values(col_anio)
+        y = 100 * g["tasa"].to_numpy(dtype=float)
+        err = np.vstack([100 * (g["tasa"] - g["ic_inf"]).to_numpy(dtype=float),
+                         100 * (g["ic_sup"] - g["tasa"]).to_numpy(dtype=float)])
+        ax.errorbar(g[col_anio], y, yerr=err, fmt=estilos[i % len(estilos)],
+                    capsize=3, label=etiqueta, alpha=0.85)
+    ax.set_xlabel("anio de firma")
+    ax.set_ylabel("tasa (%)")
+    ax.set_title(titulo)
+    ax.set_ylim(bottom=0)
+    ax.legend()
+    plt.tight_layout()
+    return fig, ax
+
+
+def tasa_por_tramos(df, col, bins, labels=None, col_y="y", etiqueta_nulos="Sin dato"):
+    """Tasa de y por tramos de una variable numerica.
+
+    `col` puede ser el nombre de una columna o una Series. Los faltantes se agrupan en
+    `etiqueta_nulos` (None los deja como NaN).
+    """
+    if isinstance(col, str):
+        s = df[col]
+        nombre = col
+    else:
+        s = col
+        nombre = getattr(s, "name", None) or "tramo"
+    tramos = pd.cut(s, bins=bins, labels=labels, right=True, include_lowest=True)
+    if etiqueta_nulos is not None:
+        if etiqueta_nulos not in tramos.cat.categories:
+            tramos = tramos.cat.add_categories([etiqueta_nulos])
+        tramos = tramos.fillna(etiqueta_nulos)
+    tramos.name = nombre
+    return tasa_por_grupo(df, tramos, col_y)
+
+
+def tasa_top_categorias(df, col, top=12, col_y="y", etiqueta_otros="OTROS",
+                        etiqueta_nulos="Sin dato"):
+    """Tasa de y para las `top` categorias mas frecuentes; el resto va a `etiqueta_otros`."""
+    if isinstance(col, str):
+        s = df[col]
+        nombre = col
+    else:
+        s = col
+        nombre = getattr(s, "name", None) or "categoria"
+    s = s.astype("object")
+    if etiqueta_nulos is not None:
+        s = s.fillna(etiqueta_nulos)
+    conteo = s.value_counts(dropna=False)
+    conservar = list(conteo.head(top).index)
+    s = s.where(s.isin(conservar), etiqueta_otros)
+    s.name = nombre
+    tabla = tasa_por_grupo(df, s, col_y)
+    orden = list(conservar)
+    if etiqueta_otros in set(s) and etiqueta_otros not in orden:
+        orden.append(etiqueta_otros)
+    tabla[nombre] = pd.Categorical(tabla[nombre], categories=orden, ordered=True)
+    return tabla.sort_values(nombre).reset_index(drop=True)
+
+
+def duracion_relativa_objeto(df, col_duracion="p_dur_dias", col_objeto="unspsc_familia",
+                             col_anio="anio_firma", anio_referencia=2023):
+    """Duracion planeada relativa a la mediana de su familia UNSPSC.
+
+    La mediana de referencia se calcula con los anios <= anio_referencia (2019-2023 en la v0)
+    y duracion > 0.
+    """
+    d = df[[col_duracion, col_objeto, col_anio]].copy()
+    ref = (d[(d[col_anio] <= anio_referencia) & (d[col_duracion] > 0)]
+           .groupby(col_objeto)[col_duracion].median())
+    d["duracion_tipica_objeto"] = d[col_objeto].map(ref)
+    d["duracion_relativa"] = d[col_duracion] / d["duracion_tipica_objeto"]
+    return d
