@@ -1,0 +1,38 @@
+{
+  "reconstruido_con_la_base_v1": false,
+  "motivo": "los 6 montos son fuga confirmada y no estan en la base v1 (quedan solo en data/raw/ para el EDA de fuga, LISTA_FUGA 'Solo EDA'). El crudo con esas columnas lo tiene Kevin (F2).",
+  "montos_presentes_en_la_base_v1": [],
+  "montos_que_faltan": [
+    "presupuesto_general_de_la_nacion_pgn",
+    "sistema_general_de_participaciones",
+    "sistema_general_de_regal_as",
+    "recursos_propios_alcald_as_gobernaciones_y_resguardos_ind_genas_",
+    "recursos_de_credito",
+    "recursos_propios"
+  ],
+  "archivos_en_data_raw": [],
+  "contraste_verificado_F0": {
+    "fuente": "PLAN.md seccion 0, puntos 9 y 10; muestra de la exploracion (base v0, y_dias), no la base v1",
+    "estado": "[VERIFICADO en la F0; NO reconstruido aqui porque los 6 montos son fuga y no estan en la base v1]",
+    "hgb_limpio_39_features": {
+      "roc_auc": 0.751,
+      "pr_auc": 0.333
+    },
+    "hgb_con_6_montos": {
+      "roc_auc": 0.807,
+      "pr_auc": 0.429
+    },
+    "hgb_A_original_solo_montos_y_resto": {
+      "roc_auc": 0.763,
+      "pr_auc": 0.334
+    },
+    "hgb_A_sin_los_6_montos": {
+      "roc_auc": 0.742
+    },
+    "subida_al_agregar_montos": {
+      "roc_auc": 0.056,
+      "pr_auc": 0.096
+    },
+    "por_que": "junto con el precio base, los 6 montos delatan las adiciones de valor: su suma es igual a valor_del_contrato en el 80,6 % de los contratos (cociente sobre el precio base 1,26 con adicion frente a 1,00 sin adicion). El 0,807/0,429 se parece a la variante C de la exploracion (0,809/0,436), probablemente inflada por lo mismo."
+  }
+}
