@@ -12,11 +12,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))     # para importar src/ tambien desde el despliegue
 
 import matplotlib.pyplot as plt
-import pandas as pd
 import streamlit as st
 
 from src import api_secop as A
-from src import config, explicacion as E, features as F, modelo_io
+from src import config, explicacion as E, modelo_io
 
 st.set_page_config(page_title="Riesgo de ampliación del plazo", page_icon="📋", layout="centered")
 
@@ -46,12 +45,12 @@ def cargar_modelo_y_explicador():
 
 
 @st.cache_resource(show_spinner=False)
-def cargar_respaldo():
-    """Copia local de contratos por si la API no responde (plan C de la sustentacion). Puede no existir."""
+def ruta_respaldo():
+    """Ruta de la copia local de contratos por si la API no responde (plan C). Puede no existir (p. ej. en la nube).
+    Solo se devuelve la ruta: el servicio lee de ahi la fila del contrato pedido y no carga la base en memoria."""
     for ruta in (config.DATA_PROCESSED / "base_contratos.parquet", Path(__file__).parent / "respaldo_demo.parquet"):
         if ruta.exists():
-            columnas = ["id_contrato", "proceso_de_compra", "nombre_entidad", "eval_en_procesos"] + F.ENTRADAS
-            return pd.read_parquet(ruta, columns=columnas)
+            return ruta
     return None
 
 
@@ -63,7 +62,7 @@ def cliente():
 def consultar(texto, explicador, meta):
     """Devuelve (consulta, explicacion|None, nivel, percentil) o muestra el error y devuelve None."""
     try:
-        consulta = A.obtener_consulta(texto, cliente=cliente(), respaldo=cargar_respaldo())
+        consulta = A.obtener_consulta(texto, cliente=cliente(), respaldo=ruta_respaldo())
     except A.IdInvalido as e:
         st.error(str(e))
     except A.ContratoNoEncontrado as e:

@@ -15,8 +15,11 @@ final-project/.env) o se pasa como argumento (la app lo toma de st.secrets). Nun
 import re
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import pandas as pd
+import pyarrow.compute as pc
+import pyarrow.parquet as pq
 import requests
 
 from . import config
@@ -36,6 +39,10 @@ assert not set(COLS_CONTRATO_API) & F.COLUMNAS_FUGA
 assert not set(COLS_PROCESO_API) & F.COLUMNAS_FUGA
 assert not (set(COLS_CONTRATO_API) | set(COLS_PROCESO_API)) & config.PII
 
+# Columnas que se leen del respaldo local (esquema de la base v1)
+COLS_RESPALDO = ["id_contrato", "proceso_de_compra", "nombre_entidad", "eval_en_procesos"] + F.ENTRADAS
+
+LOTE_RESPALDO = 20_000           # filas por lote al buscar un contrato en el parquet de respaldo
 ANIO_MIN, ANIO_MAX = config.ANIO_INICIO, config.ANIO_DERIVA     # periodo con el que se entreno y evaluo el modelo
 UMBRAL_FALTANTES = 0.40          # mas de esta fraccion de features sin dato -> aviso
 TTL_CACHE = 3600                 # segundos que se recuerda una consulta (para no repetir peticiones)
@@ -172,17 +179,39 @@ def consulta_desde_filas(contratos, procesos):
                     avisos=_avisos(feats.iloc[[0]], contrato, hay_proceso, duplicado))
 
 
-def consulta_desde_respaldo(base, id_contrato):
-    """Misma salida que la consulta a la API, pero desde filas de la base local (esquema de la base v1)."""
-    fila = base[base["id_contrato"] == id_contrato]
-    if fila.empty:
-        raise ContratoNoEncontrado(id_contrato)
-    fila = fila.iloc[[0]]
+def _fila_de_respaldo(respaldo, id_contrato):
+    """Fila del contrato en el respaldo, o None. `respaldo` es un DataFrame ya cargado o la ruta a un parquet con el
+    esquema de la base v1; con una ruta se lee solo esa fila (la base completa ocupa ~400 MB en memoria)."""
+    if respaldo is None:
+        return None
+    if isinstance(respaldo, (str, Path)):
+        if not Path(respaldo).exists():
+            return None
+        # Por lotes: read_parquet(filters=...) solo descarta grupos de filas por estadisticas y, con ids sin ordenar,
+        # lee casi todo el archivo (~1 GB de RAM). Asi el pico es de un lote (~20 MB).
+        for lote in pq.ParquetFile(respaldo).iter_batches(batch_size=LOTE_RESPALDO, columns=COLS_RESPALDO):
+            coincide = pc.equal(lote["id_contrato"], id_contrato)
+            if pc.any(coincide).as_py():
+                return lote.filter(coincide).to_pandas().iloc[[0]]
+        return None
+    fila = respaldo[respaldo["id_contrato"] == id_contrato]
+    return fila.iloc[[0]] if len(fila) else None
+
+
+def _consulta_de_fila(fila, id_contrato):
     feats = F.construir_features(fila)
     contrato = _datos_para_mostrar(fila.iloc[0].to_dict())
     hay_proceso = bool(fila.iloc[0].get("eval_en_procesos", True))
     return Consulta(id_contrato=id_contrato, features=feats, contrato=contrato,
                     avisos=_avisos(feats, contrato, hay_proceso), fuente="respaldo")
+
+
+def consulta_desde_respaldo(respaldo, id_contrato):
+    """Misma salida que la consulta a la API, pero desde la base local (DataFrame o ruta al parquet)."""
+    fila = _fila_de_respaldo(respaldo, id_contrato)
+    if fila is None:
+        raise ContratoNoEncontrado(id_contrato)
+    return _consulta_de_fila(fila, id_contrato)
 
 
 _CACHE = {}
@@ -191,7 +220,7 @@ _CACHE = {}
 def obtener_consulta(texto, cliente=None, respaldo=None, ttl=TTL_CACHE):
     """Punto de entrada de la app: texto pegado (id o enlace) -> Consulta.
 
-    Con `respaldo` (DataFrame de la base) responde desde ahi si la API no esta disponible, y marca fuente="respaldo".
+    Con `respaldo` (DataFrame o ruta a la base) responde desde ahi si la API no esta disponible, y marca fuente="respaldo".
     Lanza IdInvalido, ContratoNoEncontrado o ApiNoDisponible, con mensajes aptos para mostrar.
     """
     id_contrato = extraer_id_contrato(texto)
@@ -207,8 +236,9 @@ def obtener_consulta(texto, cliente=None, respaldo=None, ttl=TTL_CACHE):
         procesos = consultar_procesos(cliente, portafolio) if isinstance(portafolio, str) and portafolio else None
         consulta = consulta_desde_filas(contratos, procesos)
     except (Throttled, RuntimeError, requests.RequestException) as e:
-        if respaldo is not None and (respaldo["id_contrato"] == id_contrato).any():
-            return consulta_desde_respaldo(respaldo, id_contrato)
+        fila = _fila_de_respaldo(respaldo, id_contrato)
+        if fila is not None:
+            return _consulta_de_fila(fila, id_contrato)
         raise ApiNoDisponible("No pude consultar datos.gov.co en este momento. Intenta de nuevo en unos minutos.") from e
     _CACHE[id_contrato] = (time.time(), consulta)
     return consulta

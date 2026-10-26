@@ -156,6 +156,19 @@ def test_si_la_api_falla_responde_desde_el_respaldo():
         A.obtener_consulta("CO1.PCCNTR.999", cliente=ClienteFalso(error=RuntimeError("sin red")), respaldo=respaldo)
 
 
+def test_el_respaldo_por_ruta_lee_solo_la_fila_pedida(tmp_path):
+    unido = _contrato().assign(**{k: v for k, v in _procesos().iloc[0].add_prefix("p_").items()})
+    otro = unido.assign(id_contrato="CO1.PCCNTR.7654321")
+    ruta = tmp_path / "respaldo.parquet"
+    pd.concat([unido, otro]).assign(eval_en_procesos=True).to_parquet(ruta)
+    c = A.obtener_consulta(ID, cliente=ClienteFalso(error=RuntimeError("sin red")), respaldo=ruta)
+    assert c.fuente == "respaldo" and c.id_contrato == ID and len(c.features) == 1
+    with pytest.raises(A.ApiNoDisponible):      # id que no esta en el archivo
+        A.obtener_consulta("CO1.PCCNTR.999", cliente=ClienteFalso(error=RuntimeError("sin red")), respaldo=ruta)
+    with pytest.raises(A.ApiNoDisponible):      # la ruta no existe
+        A.obtener_consulta(ID, cliente=ClienteFalso(error=RuntimeError("sin red")), respaldo=tmp_path / "no_existe.parquet")
+
+
 def test_la_consulta_repetida_sale_del_cache():
     cliente = ClienteFalso(_contrato(), _procesos())
     A.obtener_consulta(ID, cliente=cliente)
