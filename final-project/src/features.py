@@ -35,6 +35,9 @@ ENTRADAS = COLS_CONTRATO + COLS_PROCESO
 # "por verificar, excluida" = ademas es sospechosa, asi que no entra a FEATURES; se puede pedir con
 # construir_features(df, con_excluidas=True) para evaluarla en la ablacion de J3.
 EXCLUIDA = "por verificar, excluida"
+# "segura con limitacion" = se verifico y no hay diferencia por y, pero el metodo no ve todos los casos
+# (docs/LISTA_FUGA.md, seccion 6). Sigue siendo feature; J3 hace la ablacion.
+SEGURA_CON_LIMITACION = "segura con limitacion"
 _TABLA = [
     # ---- categoricas ----
     ("tipo_de_contrato", "cat", "Contrato", "H7", "seguro"),
@@ -62,11 +65,11 @@ _TABLA = [
     # ---- numericas ----
     ("log_pago_adelantado", "num", "Contrato", "-", "por verificar"),
     ("len_objeto", "num", "Contrato", "H7 (proxy de complejidad)", "seguro"),
-    ("dias_firma_a_inicio", "num", "Contrato", "-", "por verificar"),
+    ("dias_firma_a_inicio", "num", "Contrato", "-", SEGURA_CON_LIMITACION),
     ("mes_firma", "num", "Calendario", "H4", "seguro"),
     ("dia_semana", "num", "Calendario", "-", "seguro"),
     ("firma_ultimo_trimestre", "num", "Calendario", "H4", "seguro"),
-    ("fin_planeado_cruza_anio", "num", "Calendario", "H4", "por verificar"),
+    ("fin_planeado_cruza_anio", "num", "Calendario", "H4", SEGURA_CON_LIMITACION),
     ("log_precio_base", "num", "Proceso", "- (tamano del contrato)", "seguro"),
     ("p_dur_dias", "num", "Proceso", "H5", "seguro"),
     ("dias_publicacion_a_firma", "num", "Proceso", "H1", "seguro"),
@@ -84,6 +87,10 @@ FEATURES_NUM = [f[0] for f in _TABLA if f[1] == "num" and f[4] != EXCLUIDA]
 FEATURES = FEATURES_CAT + FEATURES_NUM
 FEATURES_POR_VERIFICAR = [f[0] for f in _TABLA if f[4] == "por verificar"]
 FEATURES_EXCLUIDAS = [f[0] for f in _TABLA if f[4] == EXCLUIDA]
+# Ablacion obligatoria de J3 (docs/LISTA_FUGA.md seccion 6): HGB final sin estas dos features, contra la regla, global y dentro de entidad.
+# Va POR NOMBRE: no se deriva del estado en _TABLA, asi que no cambia si ese estado cambia. Debe ser un subconjunto de FEATURES.
+FEATURES_ABLACION_J3 = ["dias_firma_a_inicio", "fin_planeado_cruza_anio"]
+assert set(FEATURES_ABLACION_J3) <= set(FEATURES), "la ablacion de J3 nombra una feature que no entra al modelo"
 _TIPO = {f[0]: ("object" if f[1] == "cat" else "float64") for f in _TABLA}
 
 # Feature -> texto para el usuario de la app (las explicaciones SHAP se muestran con estos nombres)
@@ -138,6 +145,8 @@ _FUGA_CONTRATOS = {
     "estado_contrato", "ultima_actualizacion",
     # la fecha de fin incluye las prorrogas
     "fecha_de_fin_del_contrato", "fecha_de_notificaci_n_de_prorrogaci_n", "dur_contrato_dias", "razon_dur",
+    # sospechosa (LISTA_FUGA 4): se actualiza en parte despues de la firma; tampoco es respaldo de la duracion en la censura
+    "duraci_n_del_contrato",
     # el valor incluye las adiciones, y los 6 montos por fuente de recursos suman ese mismo valor
     "valor_del_contrato", "log_valor_contrato", "razon_valor",
     "presupuesto_general_de_la_nacion_pgn", "sistema_general_de_participaciones", "sistema_general_de_regal_as",
@@ -158,8 +167,10 @@ _FUGA_OTROS_DATASETS = {
     "n_filas_ejec", "avance_real_max",
     # Adiciones
     "n_eventos", "n_adic_valor", "n_extension", "n_mod_general", "primer_evento", "ultimo_evento",
-    # Modificaciones
+    # Modificaciones (las que definen la etiqueta o sirven para deduplicarla y ordenarla; LISTA_FUGA 3)
     "valor_modificacion", "dias_extendidos", "estado_modificacion", "numero_version",
+    "fecha_de_aprobacion", "fecha_fin_contrato", "fecha_version", "identificador_modificacion",
+    "version_anterior_del_contrato",
 }
 _ETIQUETAS = {"dias_adicionados", "y", "y_dias", "y_modif"}
 COLUMNAS_FUGA = (_FUGA_CONTRATOS | _FUGA_PROCESOS | _FUGA_OTROS_DATASETS | _ETIQUETAS
@@ -177,6 +188,12 @@ def _a_fecha(s):
     if not pd.api.types.is_datetime64_any_dtype(s):
         s = pd.to_datetime(s, errors="coerce", format="ISO8601")
     return s.where((s >= FECHA_MIN) & (s < FECHA_MAX))
+
+
+def _a_dia(s):
+    """Como _a_fecha, pero truncada al dia (00:00). Desde la republicacion del 26-oct, Contratos trae
+    hora en fecha_de_firma e inicio; la v0 y las features se definieron con fechas sin hora."""
+    return _a_fecha(s).dt.normalize()
 
 
 def _a_numero(s):
@@ -216,8 +233,8 @@ def construir_features(df, con_excluidas=False):
     Los faltantes quedan como NaN: la imputacion es del Pipeline.
     """
     x = df.reindex(columns=ENTRADAS)
-    firma = _a_fecha(x["fecha_de_firma"])
-    inicio = _a_fecha(x["fecha_de_inicio_del_contrato"])
+    firma = _a_dia(x["fecha_de_firma"])
+    inicio = _a_dia(x["fecha_de_inicio_del_contrato"])
     publicacion = _a_fecha(x["p_fecha_de_publicacion_del"])
 
     out = pd.DataFrame(index=df.index)
