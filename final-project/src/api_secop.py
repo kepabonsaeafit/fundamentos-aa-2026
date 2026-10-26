@@ -29,6 +29,8 @@ from .cliente_socrata import NOMBRE_TOKEN, ClienteSocrata, Throttled, leer_token
 
 # El id de un contrato de SECOP II es CO1.PCCNTR.<numero>; sale tal cual de la pagina del contrato o dentro de su enlace.
 PATRON_ID_CONTRATO = re.compile(r"CO1\.PCCNTR\.\d+", re.IGNORECASE)
+# Otros numeros de SECOP II que el usuario puede confundir con el del contrato: el del proceso (CO1.BDOS.n, CO1.REQ.n...)
+PATRON_ID_PROCESO = re.compile(r"CO1\.(?:BDOS|REQ|NTC|PPI)\.\d+", re.IGNORECASE)
 _ID_SEGURO = re.compile(r"^[A-Za-z0-9._-]{1,60}$")      # lo unico que se deja pasar a un $where
 
 # Columnas pedidas a la API. Salen de las listas verificadas del proyecto; los assert impiden que entre fuga o PII.
@@ -104,12 +106,20 @@ def crear_cliente(token=None):
 
 
 def extraer_id_contrato(texto):
-    """Devuelve el id (CO1.PCCNTR.n) que aparezca en el texto o en el enlace pegado; si no hay, lanza IdInvalido."""
+    """Devuelve el id (CO1.PCCNTR.n) que aparezca en el texto o en el enlace pegado; si no hay, lanza IdInvalido.
+
+    El portal define id_contrato como el identificador del contrato firmado generado por la plataforma. La referencia
+    del contrato la genera cada entidad (no es unica) y el numero del proceso identifica el proceso, no el contrato:
+    ninguno de los dos sirve para esta consulta, y se le explica al usuario.
+    """
     m = PATRON_ID_CONTRATO.search(texto or "")
-    if not m:
-        raise IdInvalido("No encontré un número de contrato de SECOP II. Tiene la forma CO1.PCCNTR.1234567 "
-                         "y aparece en la página del contrato o dentro de su enlace.")
-    return m.group(0).upper()
+    if m:
+        return m.group(0).upper()
+    if PATRON_ID_PROCESO.search(texto or ""):
+        raise IdInvalido("Ese número es de un proceso de compra, no de un contrato. Busca en la página del contrato firmado "
+                         "el número que empieza por CO1.PCCNTR (por ejemplo CO1.PCCNTR.1234567).")
+    raise IdInvalido("No encontré un número de contrato de SECOP II. Tiene la forma CO1.PCCNTR.1234567 "
+                     "y aparece en la página del contrato o dentro de su enlace.")
 
 
 def _donde_igual(columna, valor):

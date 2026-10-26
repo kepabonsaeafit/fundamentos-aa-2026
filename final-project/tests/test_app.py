@@ -67,9 +67,11 @@ def cache_limpia():
 def test_extrae_el_id_de_texto_suelto_y_de_un_enlace():
     assert A.extraer_id_contrato("  co1.pccntr.1234567 ") == ID
     assert A.extraer_id_contrato(f"https://community.secop.gov.co/Public/x?doc={ID}&v=1") == ID
-    for malo in ("", "hola", "CO1.BDOS.123", None):
+    for malo in ("", "hola", None):
         with pytest.raises(A.IdInvalido):
             A.extraer_id_contrato(malo)
+    with pytest.raises(A.IdInvalido, match="proceso de compra"):     # numero de proceso: mensaje especifico
+        A.extraer_id_contrato("CO1.BDOS.7654321")
 
 
 def test_el_where_no_deja_pasar_comillas():
