@@ -27,10 +27,8 @@ Reanudacion (estado en disco, en --destino):
 
 Chequeo de completitud (completitud.json en --destino, se escribe al final de cada corrida, tambien si se corta):
 - Contratos: filas por mes contra un count(*) del servidor del mismo filtro, pedido al terminar Contratos;
-  id_contrato sin repetidos, salvo copias exactas (iguales en todas las columnas) dentro de una misma unidad: esas se
-  aceptan, se cuentan y se registran con su unidad y su id; fallan las filas con el mismo id y columnas distintas y
-  los ids que aparecen en dos unidades; filas dentro de su mes y digito; con anios completos, filas por anio x digito
-  contra el conteo del paso 4 y contra el 10 % de la poblacion (+-2 %).
+  id_contrato unico; filas dentro de su mes y digito; con anios completos, filas por anio x digito contra el conteo
+  del paso 4 y contra el 10 % de la poblacion (+-2 %).
 - Procesos y Modificaciones: todos los lotes del plan hechos.
 - `ok` es true solo si todo eso se cumple; `faltantes` lista las unidades no hechas de cada conjunto.
 
@@ -38,8 +36,27 @@ Hora limite (--hasta AAAA-MM-DDTHH:MM, hora local): se revisa antes de cada peti
 curso se descarta y vuelve a pendiente (no queda nada a medias), se escribe el manifiesto y completitud.json
 (motivo "hora_limite") y sale con codigo 4. Reanudar con el mismo comando (con otra --hasta) sigue donde quedo.
 
+Modo de Contratos local (--contratos-local [CARPETA], base B; decision C del usuario, Contratos truncado el 25-oct):
+- Contratos no se descarga: se lee de los archivos AAAA-MM.parquet de la exploracion (foto del 14-oct de 2026, 106
+  archivos de 2.000 filas en 00_exploracion/data/raw/contratos_chunks/). Se conservan 2019-01 a 2025-12 (84 meses; se
+  descartan 2018 y 2026), se quitan las filas exactamente repetidas del servidor (3) y se escribe una unidad por mes
+  con las mismas columnas (COLS["contratos"], 39) y el mismo formato que en F2:
+  contratos/anio=AAAA/mes=MM_local.parquet. Sin filtro por digito. Total esperado: 167.997 contratos, los mismos de la
+  base v0 (python -m src.base).
+- Procesos y Modificaciones se descargan como siempre (lotes de 500 IDs, URL <= 15.000 caracteres), con corte por
+  defecto 2026-10-14T22:53:00 (hora de Colombia, sin zona). Zona horaria (B1): los campos de fecha de Modificaciones
+  y Procesos son calendar_date (flotantes) y todos sus valores vienen a medianoche (T00:00:00.000), asi que el corte
+  solo cuenta como fecha: `fecha_version <= '2026-10-14T22:53:00'` equivale a fecha <= 2026-10-14. No se convierte a
+  UTC: 2026-10-15T03:53:00 incluiria toda la fecha 2026-10-15, posterior a la foto de Contratos.
+- Destino por defecto data/raw/f2_b/. No aplican los chequeos de tamano (10 %) ni de digito. Completitud de B: 167.997
+  contratos unicos, cada mes dentro de su unidad, todos los lotes hechos y, por lote, count(*) del servidor (mismo
+  $where) igual a las filas descargadas (se pide al terminar las descargas; se guarda por lote y se reanuda).
+  `ok` en completitud.json exige todo eso. Codigos de salida: los mismos (1 si algun lote no coincide con el servidor,
+  2 si quedan conteos sin verificar).
+
 Uso (desde final-project/, con .venv/Scripts/python.exe):
   python -m src.descarga --hasta 2026-10-26T06:00          # F2: 2019-2025, digito 4, en data/raw/f2/; reanudar igual
+  python -m src.descarga --contratos-local --hasta 2026-10-26T11:30   # base B en data/raw/f2_b/; reanudar igual
   python -m src.descarga --mes 2024-06 --destino data/raw/f1_verificacion/paso5/prueba
   python -m src.descarga --conjuntos contratos,procesos    # deja Modificaciones pendiente (codigo 2)
 Codigos de salida: 0 todo hecho y chequeo OK; 1 fallo el chequeo de Contratos, una consulta invalida u otro error;
@@ -72,6 +89,10 @@ VERSION = "1"
 DIGITO = "4"                       # aprobado en el checkpoint del paso 4 de la F1
 DESDE, HASTA = "2019-01", "2025-12"
 DESTINO = config.DATA_RAW / "f2"
+DESTINO_LOCAL = config.DATA_RAW / "f2_b"                                              # base B (--contratos-local)
+CONTRATOS_LOCAL = config.RAIZ / "00_exploracion" / "data" / "raw" / "contratos_chunks"
+CONTRATOS_LOCAL_ESPERADOS = 167_997   # 2019-2025: 7 anios x 24.000 - 3 filas repetidas del servidor (base v0)
+CORTE_LOCAL = "2026-10-14T22:53:00"   # foto de Contratos del 14-oct, hora de Colombia sin zona (B1: no se convierte a UTC)
 TAMANO_LOTE = 500
 MAX_URL = 15_000
 LIMITE_CONTRATOS = 10_000
@@ -124,7 +145,6 @@ POBLACION_PASO4 = {2019: 142090, 2020: 356623, 2021: 560441, 2022: 707765, 2023:
 TOL_MES = (5, 0.001)
 TOL_PASO4 = (10, 0.001)
 TOL_POBLACION = 0.02
-DUPLICADOS_ACEPTADOS = "aceptados: copias exactas dentro de la unidad"   # marca en el log y en completitud.json
 
 log = logging.getLogger("descarga")
 
@@ -284,12 +304,18 @@ class Estado:
 
 class Descarga:
     def __init__(self, args):
-        self.digito = args.digito
+        self.local = Path(args.contratos_local).resolve() if getattr(args, "contratos_local", None) else None
+        self.digito = None if self.local else args.digito
         self.desde, self.hasta = (args.mes, args.mes) if args.mes else (DESDE, HASTA)
         self.destino = Path(args.destino).resolve()
         parametros = {"digito": self.digito, "desde": self.desde, "hasta": self.hasta, "tamano_lote": TAMANO_LOTE,
                       "max_url": MAX_URL, "limite_contratos": LIMITE_CONTRATOS, "limite_lotes": LIMITE_LOTES,
                       "version": VERSION}
+        if self.local:   # solo en modo local: el estado de F2 normal no cambia
+            try:
+                parametros["contratos_local"] = self.local.relative_to(config.RAIZ).as_posix()
+            except ValueError:
+                parametros["contratos_local"] = self.local.as_posix()
         self.estado = Estado(self.destino, parametros, args.corte)
         token = leer_token()
         self.cliente = ClienteSocrata(token=token, reintento_exponencial=True)
@@ -349,6 +375,11 @@ class Descarga:
     def unidades_contratos(self):
         out = []
         for anio, mes, ini, fin in meses(self.desde, self.hasta):
+            if self.local:   # una unidad por mes, leida del archivo AAAA-MM.parquet de la exploracion
+                out.append({"clave": f"{anio}-{mes:02d}_local", "fuente": self.local / f"{anio}-{mes:02d}.parquet",
+                            "ruta": self.destino / "contratos" / f"anio={anio}" / f"mes={mes:02d}_local.parquet",
+                            "anio": anio, "mes": f"{anio}-{mes:02d}", "ini": ini, "fin": fin})
+                continue
             clave = f"{anio}-{mes:02d}_dig={self.digito}"
             ruta = self.destino / "contratos" / f"anio={anio}" / f"mes={mes:02d}_dig={self.digito}.parquet"
             where = (f"fecha_de_firma >= '{ini:%Y-%m-%dT%H:%M:%S}' AND fecha_de_firma < '{fin:%Y-%m-%dT%H:%M:%S}' "
@@ -472,43 +503,9 @@ class Descarga:
         self.volcar_peticiones("contratos", "conteo_servidor")
         return {d["mes"][:7]: int(d["n"]) for d in datos}
 
-    def clasificar_duplicados(self, unidades, ids):
-        """Clasifica los id_contrato repetidos y cuenta filas sobrantes (las del id menos la primera). exactos: ids
-        cuyas filas, todas en una misma unidad, son iguales en todas las columnas; no_exactos: ids en una sola unidad
-        con alguna columna distinta entre sus filas; entre_unidades: ids que estan en mas de una unidad.
-        total = exactos + no_exactos + entre_unidades. detalle: un registro por id con copias exactas."""
-        todos = pd.concat(ids, ignore_index=True)
-        total = int(todos.duplicated().sum())
-        if total == 0:
-            return {"total": 0, "exactos": 0, "no_exactos": 0, "entre_unidades": 0, "detalle": []}
-        repetidos = set(todos[todos.duplicated(keep=False)])
-        partes = []
-        for u, s in zip(unidades, ids):
-            if s.isin(repetidos).any():
-                df = pd.read_parquet(u["ruta"])
-                partes.append(df[df["id_contrato"].isin(repetidos)].assign(_unidad=u["clave"]))
-        rep = pd.concat(partes, ignore_index=True)
-        columnas = [c for c in rep.columns if c != "_unidad"]
-        n_unidades = rep.groupby("id_contrato")["_unidad"].nunique()
-        en_varias = set(n_unidades[n_unidades > 1].index)
-        entre = rep[rep["id_contrato"].isin(en_varias)]
-        dentro = rep[~rep["id_contrato"].isin(en_varias)]
-        filas = dentro.groupby("id_contrato").size()
-        distintas = dentro.drop_duplicates(subset=columnas).groupby("id_contrato").size()
-        exactos, no_exactos = filas[distintas == 1], filas[distintas > 1]
-        unidad = dentro.groupby("id_contrato")["_unidad"].first()
-        detalle = [{"id_contrato": i, "unidad": unidad[i], "filas": int(k), "copias_exactas_sobrantes": int(k) - 1,
-                    "estado": DUPLICADOS_ACEPTADOS} for i, k in exactos.items()]
-        return {"total": total, "exactos": int(exactos.sum()) - len(exactos),
-                "no_exactos": int(no_exactos.sum()) - len(no_exactos),
-                "entre_unidades": len(entre) - len(en_varias), "detalle": detalle}
-
     def chequear_contratos(self, unidades):
-        """False si un mes no cuadra con el count(*) del servidor, si hay id_contrato repetidos que no son copias
-        exactas dentro de una misma unidad (filas con el mismo id y alguna columna distinta, o un id en dos unidades),
-        si hay filas fuera de su unidad, o si un anio completo no cuadra con el conteo del paso 4 o con el 10 % de la
-        poblacion. Las copias exactas dentro de una unidad no hacen fallar el chequeo: se cuentan y se registran en el
-        log y en completitud.json, con su unidad y su id (F3 las deduplica)."""
+        """False si un mes no cuadra con el count(*) del servidor, si hay id_contrato repetidos o filas fuera de su
+        unidad, o si un anio completo no cuadra con el conteo del paso 4 o con el 10 % de la poblacion."""
         previo = self.estado.datos["chequeos"].get("contratos")
         if previo and previo["ok"]:
             log.info(f"[completitud] Contratos ya verificado el {previo['fecha']} (sin cambios desde entonces): OK")
@@ -526,7 +523,7 @@ class Descarga:
             tol = tolerancia(esperado, TOL_MES)
             por_mes.append({"mes": u["mes"], "anio": u["anio"], "servidor": esperado, "descargado": len(df),
                             "diferencia": len(df) - esperado, "tolerancia": tol, "ok": abs(len(df) - esperado) <= tol})
-        dup = self.clasificar_duplicados(unidades, ids)
+        duplicados = int(pd.concat(ids, ignore_index=True).duplicated().sum())
         por_anio = []
         for anio in sorted({m["anio"] for m in por_mes}):
             del_anio = [m for m in por_mes if m["anio"] == anio]
@@ -543,12 +540,9 @@ class Descarga:
                 fila.update(diez_por_ciento=POBLACION_PASO4[anio] / 10, desvio_rel=round(desvio, 5),
                             ok_poblacion=abs(desvio) <= TOL_POBLACION)
             por_anio.append(fila)
-        ok = (all(m["ok"] for m in por_mes) and dup["no_exactos"] == 0 and dup["entre_unidades"] == 0 and fuera == 0
+        ok = (all(m["ok"] for m in por_mes) and duplicados == 0 and fuera == 0
               and all(f.get("ok_paso4", True) and f.get("ok_poblacion", True) for f in por_anio))
-        resultado = {"fecha": ahora(), "ok": ok, "duplicados_id_contrato": dup["total"],
-                     "duplicados_exactos_id_contrato": dup["exactos"], "duplicados_no_exactos": dup["no_exactos"],
-                     "duplicados_entre_unidades": dup["entre_unidades"], "duplicados_exactos_detalle": dup["detalle"],
-                     "filas_fuera_de_unidad": fuera,
+        resultado = {"fecha": ahora(), "ok": ok, "duplicados_id_contrato": duplicados, "filas_fuera_de_unidad": fuera,
                      "tolerancias": {"mes": TOL_MES, "paso4": TOL_PASO4, "poblacion": TOL_POBLACION},
                      "por_anio_digito": por_anio, "por_mes": por_mes}
         self.estado.datos["chequeos"]["contratos"] = resultado
@@ -556,19 +550,8 @@ class Descarga:
         malos = [m for m in por_mes if not m["ok"]]
         log.info(f"[completitud] Contratos: {sum(m['descargado'] for m in por_mes)} filas descargadas frente a "
                  f"{sum(m['servidor'] for m in por_mes)} del count(*) del servidor en {len(por_mes)} meses; "
-                 f"meses fuera de tolerancia {len(malos)}; filas sobrantes por id_contrato repetido {dup['total']} "
-                 f"(copias exactas dentro de su unidad {dup['exactos']}, filas distintas con el mismo id "
-                 f"{dup['no_exactos']}, ids en mas de una unidad {dup['entre_unidades']}); filas fuera de su unidad "
-                 f"{fuera}")
-        if dup["no_exactos"] or dup["entre_unidades"]:
-            log.error("[completitud] id_contrato repetidos NO aceptados: solo se aceptan copias exactas dentro de la "
-                      "misma unidad")
-        if dup["detalle"]:
-            log.warning(f"[completitud] duplicados {DUPLICADOS_ACEPTADOS}: {dup['exactos']} filas sobrantes en "
-                        f"{len(dup['detalle'])} id_contrato y {len({d['unidad'] for d in dup['detalle']})} unidades")
-        for d in dup["detalle"]:
-            log.warning(f"[completitud] id_contrato {d['id_contrato']} en {d['unidad']}: {d['filas']} filas, "
-                        f"{d['copias_exactas_sobrantes']} copia(s) exacta(s) sobrante(s) ({d['estado']})")
+                 f"meses fuera de tolerancia {len(malos)}; id_contrato repetidos {duplicados}; filas fuera de su "
+                 f"unidad {fuera}")
         for m in malos:
             log.error(f"[completitud] {m['mes']}: descargado {m['descargado']}, servidor {m['servidor']} "
                       f"(tolerancia {m['tolerancia']})")
@@ -580,6 +563,155 @@ class Descarga:
         if not ok:
             log.error("[completitud] Contratos NO cuadra: no se sigue con Procesos ni Modificaciones")
         return ok
+
+    # ---------------- modo de Contratos local (base B) ----------------
+    def plan_contratos_local(self):
+        """Registra en planes['contratos'] los archivos de la carpeta local usados y los descartados (fuera de rango)."""
+        if not self.local.is_dir():
+            raise SystemExit(f"--contratos-local: no existe la carpeta {self.local}")
+        ini, fin = pd.Period(self.desde, "M"), pd.Period(self.hasta, "M")
+        usados, descartados = 0, {}
+        for ruta in sorted(self.local.glob("*.parquet")):
+            try:
+                periodo = pd.Period(ruta.stem, "M")
+            except ValueError:
+                log.warning(f"[contratos] {ruta.name}: el nombre no es AAAA-MM; se ignora")
+                continue
+            if ini <= periodo <= fin:
+                usados += 1
+            else:
+                filas = len(pd.read_parquet(ruta, columns=["id_contrato"]))
+                descartados[periodo.year] = descartados.get(periodo.year, 0) + filas
+        plan = {"fuente": self.estado.datos["parametros"]["contratos_local"], "archivos_en_rango": usados,
+                "filas_descartadas_por_anio": {str(a): n for a, n in sorted(descartados.items())},
+                "filas_descartadas": sum(descartados.values())}
+        self.estado.datos["planes"]["contratos"] = plan
+        self.estado.guardar()
+        log.info(f"[contratos] fuente local {plan['fuente']}: {usados} archivos en rango {self.desde} a {self.hasta}; "
+                 f"descartados {plan['filas_descartadas']} filas fuera de rango {plan['filas_descartadas_por_anio']}")
+
+    def copiar_unidad_local(self, unidad, i, n):
+        """Lee el archivo del mes, quita las filas exactamente repetidas y guarda la unidad (mismo formato que F2)."""
+        clave, ruta = unidad["clave"], unidad["ruta"]
+        self.actual = ("contratos", clave)
+        self.estado.marcar("contratos", clave, estado=PENDIENTE, inicio=ahora(), fin="", error="")
+        t = time.perf_counter()
+        try:
+            df = pd.read_parquet(unidad["fuente"], columns=COLS["contratos"])
+            leidas = len(df)
+            df = df.drop_duplicates()   # filas repetidas por el servidor (2022-11, 2022-12 y 2024-07 tienen una)
+            n_filas, n_bytes, sha = guardar_parquet(df.to_dict("records"), COLS["contratos"], ruta)
+        except Exception as e:  # noqa: BLE001 - archivo ausente o sin columnas: la unidad queda fallida y se sigue
+            self.estado.marcar("contratos", clave, estado=FALLIDO, fin=ahora(), error=f"{type(e).__name__}: {e}"[:300])
+            log.error(f"[contratos] {i}/{n} {clave}: FALLIDO {type(e).__name__}: {str(e)[:200]}")
+            return
+        seg = time.perf_counter() - t
+        nota = f"{leidas - n_filas} fila(s) repetida(s) del servidor eliminada(s)" if leidas != n_filas else ""
+        self.estado.marcar("contratos", clave, estado=HECHO, filas=n_filas, paginas=0, bytes=n_bytes,
+                           segundos=round(seg, 2), fin=ahora(), sha256=sha, error=nota)
+        self.bajadas["contratos"] += 1
+        if self.estado.datos["chequeos"].pop("contratos", None):
+            self.estado.guardar()   # la unidad cambio: el chequeo se rehace
+        log.info(f"[contratos] {i}/{n} {clave}: {n_filas} filas leidas de {unidad['fuente'].name}"
+                 + (f" ({nota})" if nota else ""))
+
+    def copiar_contratos_local(self, unidades):
+        self.plan_contratos_local()
+        por_pedir = self.estado.planificar("contratos", unidades)
+        log.info(f"[contratos] {len(unidades)} unidades locales: {len(unidades) - len(por_pedir)} ya hechas, "
+                 f"{len(por_pedir)} por escribir")
+        for i, u in enumerate(por_pedir, 1):
+            self.copiar_unidad_local(u, i, len(por_pedir))
+
+    def chequear_contratos_local(self, unidades):
+        """False si el total no es 167.997 (rango completo), hay id_contrato repetidos o filas fuera de su mes."""
+        previo = self.estado.datos["chequeos"].get("contratos")
+        if previo and previo["ok"]:
+            log.info(f"[completitud] Contratos locales ya verificados el {previo['fecha']}: OK")
+            return True
+        por_mes, ids, fuera, fuente = [], [], 0, 0
+        for u in unidades:
+            df = pd.read_parquet(u["ruta"], columns=["id_contrato", "fecha_de_firma"])
+            ids.append(df["id_contrato"])
+            firma = pd.to_datetime(df["fecha_de_firma"], errors="coerce")
+            fuera += int((~((firma >= u["ini"]) & (firma < u["fin"]))).sum())
+            fuente += len(pd.read_parquet(u["fuente"], columns=["id_contrato"]))
+            por_mes.append({"mes": u["mes"], "anio": u["anio"], "descargado": len(df)})
+        duplicados = int(pd.concat(ids, ignore_index=True).duplicated().sum())
+        total = sum(m["descargado"] for m in por_mes)
+        completo = (self.desde, self.hasta) == (DESDE, HASTA)
+        por_anio = [{"anio": a, "contratos": sum(m["descargado"] for m in por_mes if m["anio"] == a)}
+                    for a in sorted({m["anio"] for m in por_mes})]
+        ok = (duplicados == 0 and fuera == 0 and all(m["descargado"] > 0 for m in por_mes)
+              and (not completo or total == CONTRATOS_LOCAL_ESPERADOS))
+        resultado = {"fecha": ahora(), "ok": ok, "modo": "local", "total": total,
+                     "esperado": CONTRATOS_LOCAL_ESPERADOS if completo else None,
+                     "filas_fuente": fuente, "repetidas_eliminadas": fuente - total,
+                     "duplicados_id_contrato": duplicados, "filas_fuera_de_unidad": fuera,
+                     "por_anio": por_anio, "por_mes": por_mes}
+        self.estado.datos["chequeos"]["contratos"] = resultado
+        self.estado.guardar()
+        log.info(f"[completitud] Contratos locales: {total} contratos (esperado "
+                 f"{CONTRATOS_LOCAL_ESPERADOS if completo else '- (no es el rango completo)'}) en {len(unidades)} "
+                 f"meses; {fuente - total} fila(s) repetida(s) eliminada(s); id_contrato repetidos {duplicados}; "
+                 f"filas fuera de su mes {fuera}; por anio {[(f['anio'], f['contratos']) for f in por_anio]}")
+        if not ok:
+            log.error("[completitud] Contratos locales NO cuadra: no se sigue con Procesos ni Modificaciones")
+        return ok
+
+    def contar_lotes(self, dataset, lotes):
+        """count(*) del servidor con el mismo $where de cada lote hecho, contra las filas descargadas. Se guarda por
+        lote en _estado.json (reanudable); un lote cuyas filas cambiaron se vuelve a contar."""
+        reg = self.estado.datos["chequeos"].setdefault("conteo_lotes", {}).setdefault(dataset, {})
+        filas = {f["clave"]: int(f["filas"]) for f in self.estado.filas(dataset) if f["estado"] == HECHO}
+        pendientes = [l for l in lotes if l["clave"] in filas
+                      and not (l["clave"] in reg and reg[l["clave"]]["descargado"] == filas[l["clave"]])]
+        log.info(f"[completitud] {dataset}: count(*) del servidor por lote: {len(lotes) - len(pendientes)} ya "
+                 f"verificados, {len(pendientes)} por pedir")
+        for i, l in enumerate(pendientes, 1):
+            self.revisar_tope()
+            clave = l["clave"]
+            self.actual = (dataset, "conteo:" + clave)
+            try:
+                datos = self.agregado.consultar(config.DATASETS[dataset], {
+                    "$select": "count(*) as n", "$where": self.where_lote(dataset, l["ids"])})
+            except Exception as e:  # noqa: BLE001 - tras los reintentos: el lote queda sin verificar y se sigue
+                self.volcar_peticiones(dataset, "conteo:" + clave)
+                if isinstance(e, Throttled) or (isinstance(e, ValueError)
+                                                and not isinstance(e, requests.exceptions.JSONDecodeError)):
+                    raise
+                log.error(f"[completitud] {dataset} {i}/{len(pendientes)} {clave}: conteo FALLIDO "
+                          f"{type(e).__name__}: {str(e)[:200]}")
+                continue
+            self.volcar_peticiones(dataset, "conteo:" + clave)
+            servidor = int(datos[0]["n"]) if datos else 0
+            reg[clave] = {"servidor": servidor, "descargado": filas[clave], "ok": servidor == filas[clave]}
+            self.estado.guardar()
+            if servidor != filas[clave]:
+                log.error(f"[completitud] {dataset} {clave}: descargadas {filas[clave]} filas, count(*) del servidor "
+                          f"{servidor}")
+            elif i % 25 == 0 or i == len(pendientes):
+                log.info(f"[completitud] {dataset}: {i}/{len(pendientes)} conteos | transcurrido "
+                         f"{self.hms(self.transcurrido())} | peticiones {self.peticiones()}")
+
+    def estado_conteo(self):
+        """Por conjunto: lotes, los que coinciden con el servidor, las diferencias y los que faltan por verificar."""
+        reg = self.estado.datos["chequeos"].get("conteo_lotes", {})
+        out = {}
+        for dataset in ("procesos", "modificaciones"):
+            coinciden, diferencias, sin_verificar = 0, [], 0
+            filas = self.estado.filas(dataset)
+            for f in filas:
+                e = reg.get(dataset, {}).get(f["clave"])
+                if f["estado"] != HECHO or e is None or e["descargado"] != int(f["filas"]):
+                    sin_verificar += 1
+                elif e["ok"]:
+                    coinciden += 1
+                else:
+                    diferencias.append({"clave": f["clave"], "servidor": e["servidor"], "descargado": e["descargado"]})
+            out[dataset] = {"lotes": len(filas), "coinciden": coinciden, "diferencias": diferencias,
+                            "sin_verificar": sin_verificar}
+        return out
 
     def resumen_lotes(self, dataset, lotes):
         # Lote por lote (los lotes no comparten IDs, asi que las cuentas se suman): no carga todo el conjunto en RAM
@@ -616,6 +748,9 @@ class Descarga:
         contratos_ok = bool(chequeos.get("contratos", {}).get("ok"))
         ok = (contratos_ok and all(ds in planes for ds in ("procesos", "modificaciones"))
               and all(unidades[ds]["planificadas"] > 0 and not faltantes[ds] for ds in CONJUNTOS))
+        cuenta = self.estado_conteo() if self.local else None
+        if cuenta:   # modo local: ademas, cada lote coincide con el count(*) del servidor
+            ok = ok and all(c["lotes"] > 0 and c["coinciden"] == c["lotes"] for c in cuenta.values())
         codigo = codigo if (codigo != 0 or ok) else 2
         contenido = {
             "ok": ok, "codigo_salida": codigo, "motivo": "completo" if ok else (self.motivo or "pendientes"),
@@ -626,17 +761,24 @@ class Descarga:
             "conteos_por_anio_digito": chequeos.get("contratos", {}).get("por_anio_digito", []),
             "unidades": unidades, "faltantes": faltantes, "planes": planes, "chequeos": chequeos,
             "peticiones_corrida": self.peticiones(), "segundos_corrida": round(self.transcurrido(), 1)}
+        if cuenta:
+            contenido.update(modo="contratos_local", contratos_local=self.estado.datos["parametros"]["contratos_local"],
+                             conteo_lotes=cuenta)
         escribir_atomico(self.ruta_completitud, json.dumps(contenido, indent=2, ensure_ascii=True, default=str))
         return ok, codigo
 
     # ---------------- corrida ----------------
     def correr(self, conjuntos):
-        log.info(f"corrida {self.corrida}: digito {self.digito}, meses {self.desde} a {self.hasta}, corte "
+        origen = f"contratos locales de {self.local}" if self.local else f"digito {self.digito}"
+        log.info(f"corrida {self.corrida}: {origen}, meses {self.desde} a {self.hasta}, corte "
                  f"{self.estado.corte}, hora limite {self.hora_limite or '-'}, conjuntos {','.join(conjuntos)}, "
                  f"destino {self.destino}")
         unidades = self.unidades_contratos()
         if "contratos" in conjuntos:
-            self.recorrer("contratos", unidades, LIMITE_CONTRATOS, lambda u: u["where"])
+            if self.local:
+                self.copiar_contratos_local(unidades)
+            else:
+                self.recorrer("contratos", unidades, LIMITE_CONTRATOS, lambda u: u["where"])
         else:
             self.estado.planificar("contratos", unidades)
         if self.no_hechas("contratos"):
@@ -644,17 +786,29 @@ class Descarga:
                       "y Modificaciones esperan a que Contratos este completo")
             self.motivo = "contratos_pendientes"
             return 2
-        if not self.chequear_contratos(unidades):
+        if not (self.chequear_contratos_local(unidades) if self.local else self.chequear_contratos(unidades)):
             self.motivo = "chequeo_contratos_fallo"
             return 1
+        por_conjunto = {}
         for dataset in ("procesos", "modificaciones"):
-            lotes = self.lotes(dataset)
+            lotes = por_conjunto[dataset] = self.lotes(dataset)
             if dataset in conjuntos:
                 self.recorrer(dataset, lotes, LIMITE_LOTES, lambda u, d=dataset: self.where_lote(d, u["ids"]))
             else:
                 n = len(self.estado.planificar(dataset, lotes))
                 log.info(f"[{dataset}] no esta en --conjuntos: {n} lotes quedan pendientes")
             self.resumen_lotes(dataset, lotes)
+        if self.local:   # count(*) del servidor por lote, al terminar las descargas (si falta tiempo, lo ultimo en caer)
+            for dataset, lotes in por_conjunto.items():
+                if dataset in conjuntos and not self.no_hechas(dataset):
+                    self.contar_lotes(dataset, lotes)
+            cuenta = self.estado_conteo()
+            if any(c["diferencias"] for c in cuenta.values()):
+                self.motivo = "conteo_lotes_no_cuadra"
+                return 1
+            if any(c["sin_verificar"] for c in cuenta.values()) and not any(self.no_hechas(ds) for ds in CONJUNTOS):
+                self.motivo = "conteo_lotes_pendientes"
+                return 2
         return 2 if any(self.no_hechas(ds) for ds in CONJUNTOS) else 0
 
 
@@ -675,14 +829,30 @@ def configurar_log(destino):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Descarga F2 de SECOP II (reanudable).")
     ap.add_argument("--mes", help="limita la descarga a un mes de firma, AAAA-MM (prueba)")
-    ap.add_argument("--digito", default=DIGITO, choices=list("0123456789"))
-    ap.add_argument("--destino", default=str(DESTINO), help="carpeta de salida (por defecto data/raw/f2/)")
-    ap.add_argument("--corte", help="fecha de corte AAAA-MM-DDTHH:MM:SS (por defecto, la hora de arranque)")
+    ap.add_argument("--digito", choices=list("0123456789"), help=f"ultimo digito de id_contrato (por defecto {DIGITO})")
+    ap.add_argument("--destino", help="carpeta de salida (por defecto data/raw/f2/; con --contratos-local, "
+                                      "data/raw/f2_b/)")
+    ap.add_argument("--corte", help="fecha de corte AAAA-MM-DDTHH:MM:SS (por defecto, la hora de arranque; con "
+                                    f"--contratos-local, {CORTE_LOCAL})")
+    ap.add_argument("--contratos-local", nargs="?", const=str(CONTRATOS_LOCAL), metavar="CARPETA",
+                    help="base B: lee Contratos de los archivos AAAA-MM.parquet de la exploracion (por defecto "
+                         "00_exploracion/data/raw/contratos_chunks/), sin filtro por digito, y descarga solo Procesos "
+                         "y Modificaciones")
     ap.add_argument("--conjuntos", default=",".join(CONJUNTOS),
                     help="subconjunto de contratos,procesos,modificaciones (por defecto, los tres)")
     ap.add_argument("--hasta", dest="hora_limite", metavar="AAAA-MM-DDTHH:MM",
                     help="hora limite local: al llegar se detiene limpiamente (codigo 4); reanudar con el mismo comando")
     args = ap.parse_args(argv)
+    if args.contratos_local:
+        if args.digito:
+            ap.error("--contratos-local no filtra por digito: no use --digito")
+        if not Path(args.contratos_local).is_dir():
+            ap.error(f"--contratos-local: no existe la carpeta {args.contratos_local}")
+        args.corte = args.corte or CORTE_LOCAL
+        args.destino = args.destino or str(DESTINO_LOCAL)
+    else:
+        args.digito = args.digito or DIGITO
+        args.destino = args.destino or str(DESTINO)
     if args.mes:
         pd.Period(args.mes, "M")   # valida el formato
     if args.corte:
