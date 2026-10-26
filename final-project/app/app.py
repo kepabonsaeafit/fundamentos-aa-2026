@@ -32,6 +32,8 @@ AVISOS = {
     A.AVISO_FECHA_INVALIDA: "La fecha de firma del registro no es válida. El resultado puede ser poco confiable.",
     A.AVISO_MUCHOS_FALTANTES: "Faltan muchos datos de este contrato en SECOP II. El resultado puede ser poco confiable.",
     A.AVISO_DUPLICADO: "El portal devolvió este contrato repetido; se usó el primer registro.",
+    A.AVISO_ENTIDAD_SIN_HISTORIAL: "El modelo no vio contratos de esta entidad al entrenarse, así que no conoce sus hábitos "
+                                   "y el resultado se apoya solo en las características del contrato.",
 }
 NIVELES = {"alto": ("Riesgo ALTO", st.error), "medio": ("Riesgo MEDIO", st.warning), "bajo": ("Riesgo BAJO", st.success)}
 
@@ -75,6 +77,7 @@ def consultar(texto, explicador, meta):
             puntaje = explicacion.puntaje
         except E.ExplicacionInvalida:      # no se muestran factores que no sumen bien; el puntaje sigue siendo valido
             explicacion, puntaje = None, float(explicador.pipeline.predict_proba(consulta.features)[0, 1])
+        consulta.avisos += A.avisos_del_modelo(consulta.features, meta)
         nivel, percentil = E.nivel_y_percentil(puntaje, meta)
         return consulta, explicacion, nivel, percentil
     return None

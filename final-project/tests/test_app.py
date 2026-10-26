@@ -135,6 +135,14 @@ def test_avisos_sin_proceso_y_fuera_de_periodo():
     assert A.AVISO_FUERA_DE_PERIODO in antiguo.avisos
 
 
+def test_aviso_de_entidad_sin_historial_solo_si_el_modelo_trae_la_lista():
+    feats = A.consulta_desde_filas(_contrato(), _procesos()).features       # nit_entidad = 890000001
+    assert A.avisos_del_modelo(feats, {}) == []                            # el modelo no trae la lista: no se sabe
+    assert A.avisos_del_modelo(feats, {"entidades_vistas": ["890000001", "111"]}) == []
+    assert A.avisos_del_modelo(feats, {"entidades_vistas": [890000001]}) == []       # tambien con numeros
+    assert A.avisos_del_modelo(feats, {"entidades_vistas": ["111", "222"]}) == [A.AVISO_ENTIDAD_SIN_HISTORIAL]
+
+
 # ---------------------------------------------------------------- API caida y respaldo
 def test_contrato_inexistente():
     with pytest.raises(A.ContratoNoEncontrado):

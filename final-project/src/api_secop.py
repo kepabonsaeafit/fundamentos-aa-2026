@@ -55,6 +55,7 @@ AVISO_FUERA_DE_PERIODO = "fuera_de_periodo"
 AVISO_FECHA_INVALIDA = "fecha_firma_invalida"
 AVISO_MUCHOS_FALTANTES = "muchos_faltantes"
 AVISO_DUPLICADO = "contrato_duplicado"
+AVISO_ENTIDAD_SIN_HISTORIAL = "entidad_sin_historial"
 
 
 class ContratoNoEncontrado(LookupError):
@@ -173,6 +174,22 @@ def _avisos(feats, contrato, hay_proceso, duplicado=False):
     if duplicado:
         avisos.append(AVISO_DUPLICADO)
     return avisos
+
+
+def avisos_del_modelo(feats, meta):
+    """Avisos que dependen del artefacto del modelo, no del contrato.
+
+    Si el .json del modelo trae `entidades_vistas` (los NIT de las entidades con contratos en el entrenamiento), avisa
+    cuando la entidad del contrato no esta ahi: el modelo no conoce sus habitos y solo se apoya en el contrato. Si el
+    .json no trae la lista (el dummy no la trae), no se puede saber y no se avisa nada.
+    """
+    vistas = (meta or {}).get("entidades_vistas")
+    if not vistas:
+        return []
+    nit = feats.iloc[0]["nit_entidad"]
+    if pd.isna(nit) or str(nit) not in {str(v) for v in vistas}:
+        return [AVISO_ENTIDAD_SIN_HISTORIAL]
+    return []
 
 
 def consulta_desde_filas(contratos, procesos):
