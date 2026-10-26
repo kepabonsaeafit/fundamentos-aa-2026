@@ -90,16 +90,28 @@ def frase_percentil(percentil):
     return f"Su puntaje es mayor que el de {p} de cada 100 contratos de referencia del modelo."
 
 
-def grafico_factores(aportes):
+def tema_oscuro():
+    try:
+        return st.context.theme.type == "dark"
+    except Exception:        # fuera de un navegador (pruebas) o version sin st.context.theme
+        return False
+
+
+def grafico_factores(aportes, oscuro=False):
+    """Barras horizontales de los 5 factores principales; solo importa la direccion, no el valor en log-odds."""
+    texto = "#fafafa" if oscuro else "#31333f"
     datos = aportes.head(5).iloc[::-1]
     fig, ax = plt.subplots(figsize=(7, 2.8))
-    ax.barh(datos["nombre"], datos["aporte"], color=["#c0392b" if a > 0 else "#2e86c1" for a in datos["aporte"]])
-    ax.axvline(0, color="#555", linewidth=0.8)
-    ax.set_xlabel("← reduce el riesgo        aumenta el riesgo →")
-    ax.set_xticks([])          # los valores estan en log-odds: no le dicen nada al usuario, solo importa la direccion
-    ax.tick_params(axis="y", labelsize=9)
+    fig.patch.set_alpha(0)          # el fondo lo pone la pagina, asi sirve con tema claro y oscuro
+    ax.set_facecolor("none")
+    ax.barh(datos["nombre"], datos["aporte"], color=["#e74c3c" if a > 0 else "#3498db" for a in datos["aporte"]])
+    ax.axvline(0, color=texto, linewidth=0.8)
+    ax.set_xlabel("← reduce el riesgo        aumenta el riesgo →", color=texto)
+    ax.set_xticks([])
+    ax.tick_params(axis="y", labelsize=9, colors=texto)
     for lado in ("top", "right", "bottom"):
         ax.spines[lado].set_visible(False)
+    ax.spines["left"].set_color(texto)
     fig.tight_layout()
     return fig
 
@@ -130,7 +142,7 @@ def mostrar(consulta, explicacion, nivel, percentil, meta):
             flecha, efecto = ("▲", "aumenta") if r.aporte > 0 else ("▼", "reduce")
             dato = "" if r.valor != E.SIN_DATO else " (dato no registrado)"
             st.markdown(f"{flecha} **{r.nombre}:** {r.valor}{dato}. *{efecto} el riesgo.*")
-        st.pyplot(grafico_factores(explicacion.aportes), clear_figure=True)
+        st.pyplot(grafico_factores(explicacion.aportes, tema_oscuro()), clear_figure=True)
     else:
         st.info("No se pudo explicar este resultado con la precisión requerida, así que no se muestran los factores.")
 
