@@ -1,12 +1,13 @@
 # Plan del proyecto final: riesgo de prórroga en contratos públicos (SECOP II)
 
-> Versión 3.2, con el calendario, los recortes y los límites de tiempo de Kevin, y con lo medido en la F0: entorno, hallazgo de SHAP, fuga de los montos y señal limpia (sección 0, puntos 7 a 11, y lo que de ellos se deriva en F0, J1-J3, G1 y riesgos).
+> Versión 3.3 (25-oct-2026), con el cierre de la F1: etiqueta aprobada, `docs/LISTA_FUGA.md` v1, límites y reglas de acceso de F2, dígito de la muestra e incidente de Contratos (sección 0, punto 12; límites de tiempo; F1-F3; 4.1-4.8; riesgos).
+> La versión 3.2 agregó el calendario, los recortes y los límites de tiempo de Kevin, y lo medido en la F0: entorno, hallazgo de SHAP, fuga de los montos y señal limpia (sección 0, puntos 7 a 11, y lo que de ellos se deriva en F0, J1-J3, G1 y riesgos).
 > Leyenda: **[VERIFICADO]** visto en datos/código · **[SUPUESTO]** · **[ESTIMADO]** · **[NO EVALUADO]**.
 > Cada tarea va marcada **[MÍNIMO]** (necesaria para cumplir el enunciado) o **[EXTRA]** (fuera del alcance salvo que sobre tiempo).
 
 ## Contexto
 
-La exploración (`00_exploracion/`) eligió SECOP II: predecir, al firmar un contrato, la probabilidad de que termine prorrogado, para que veedurías y oficinas de control interno prioricen qué vigilar. El profesor aprobó el tema y pidió **justificar bien cómo los datos del contrato predicen la prórroga y qué ingresa el usuario**. Hay señal, pero más modesta de lo que decía la exploración (sección 0, punto 9): con las features limpias el HGB da 0,751 ROC-AUC / 0,333 PR-AUC en 2024 frente a 0,714 / 0,277 de la regla por entidad. Además, la etiqueta subestima los positivos, hay censura y la tasa salta de 12 % a 20 % en 2025.
+La exploración (`00_exploracion/`) eligió SECOP II: predecir, al firmar un contrato, la probabilidad de que termine prorrogado, para que veedurías y oficinas de control interno prioricen qué vigilar. El profesor aprobó el tema y pidió **justificar bien cómo los datos del contrato predicen la prórroga y qué ingresa el usuario**. Hay señal, pero más modesta de lo que decía la exploración (sección 0, punto 9): con las features limpias el HGB da 0,751 ROC-AUC / 0,333 PR-AUC en 2024 frente a 0,714 / 0,277 de la regla por entidad. Además, la etiqueta subestima los positivos, hay censura y la tasa salta de 12 % a 20 % en 2025. La F1 mostró que ese salto es un efecto de registro y cambió la etiqueta (sección 0, punto 12).
 
 **Fechas:**
 - Quedan **10 días**.
@@ -53,6 +54,12 @@ El paralelismo se apoya en cuatro **contratos** (sección 2) y en una **base v0*
    - **Códigos ordinales frente a categorías nativas** (contratos maduros de 2024): HGB nativo con las 200 categorías más frecuentes 0,752 / 0,336; HGB con códigos ordinales (el dummy, sin early stopping) 0,766 / 0,344. Los códigos no pierden en esta muestra (una sola corrida, sin intervalo); alimenta la decisión (a)/(b) del punto 7.
    - **ROC-AUC dentro de entidad:** probabilidad de que, entre un contrato prorrogado y uno no prorrogado de la misma entidad, el modelo puntúe más alto al prorrogado (empates 0,5). Se calcula sobre los 501.046 pares de las 486 entidades del test 2024 que tienen ambas clases. La regla por entidad da 0,500 por construcción (puntaje constante dentro de la entidad). HGB limpio: **0,612 [0,524, 0,685]** ponderando por pares y **0,633 [0,609, 0,657]** promediando por entidad (intervalos con bootstrap por entidad). Con solo las entidades de 20 o más contratos (179, el 99 % de los pares) da 0,612 [0,524, 0,686]. El efecto es moderado y ambos intervalos excluyen 0,50, pero con solo las 29 features seguras el intervalo por pares incluye 0,50 (0,592 [0,473, 0,670]; por entidad 0,637 [0,609, 0,661]). Es lo que ve una veeduría que revisa los contratos de una sola entidad, y la regla no puede aportar nada ahí.
    - **Madurez:** filtrar por `eval_madura` casi no cambia las referencias (regla 0,714 → 0,715; HGB 0,751 → 0,752), porque la duración planeada mediana es de 120 días y el 97-99 % de los contratos de 2019-2025 ya venció.
+12. **Lo que cambió la F1 (23-25 de octubre).** [VERIFICADO; reportes en `.agents/tasks/f1/`, carpeta local no versionada; resumen de fuga en `docs/LISTA_FUGA.md` v1]
+   - **Etiqueta aprobada:** `y = 1` si `dias_adicionados > 0` o existe una modificación `Publicado` con `dias_extendidos > 0` y `fecha_de_aprobacion > fecha_de_firma + 1 día` (4.3). El objetivo se llama **ampliación del plazo**: las suspensiones y los ajustes de fecha cuentan como positivos. En 1.400 contratos al azar (200 por año de firma), `y_dias` da 12,1 % y la etiqueta aprobada 24,4 % [22,2, 26,7].
+   - **El salto de 2025 en `y_dias` es un efecto de registro, no una deriva real.** `dias_adicionados` guarda solo los días de la última modificación publicada y vuelve a 0 cuando se publica otra sin días. En los contratos recientes todavía no llegó esa modificación posterior: `y_dias` marca el 80 % de los positivos de 2025 frente al 43 % de 2019-2024. Con la etiqueta aprobada, 2019-2024 queda entre 19,5 % y 26,5 % sin diferencias entre años (p = 0,56) y 2025 en 30,0 % (p = 0,05 frente a 2019-2024). **Nota para G3:** el ejemplo de alarma pasa a ser este cambio de registro, no un cambio de comportamiento.
+   - **Nota para J1-J3:** las cifras de la F0 (0,751 de ROC-AUC, +0,037 sobre la regla, entidades no vistas, top-k y dentro de entidad, puntos 9 y 11) se midieron con `y_dias` sobre la base v0. Las referencias reales se miden con la base v1.
+   - **`fecha_de_inicio_del_contrato`:** no cambia más en `y = 1` que en `y = 0` (17,3 % frente a 13,4 %, p = 0,37), y casi todo es un desfase de 1 día entre conjuntos. `dias_firma_a_inicio` y `fin_planeado_cruza_anio` quedan como "segura con limitación"; la ablación pasa a J3.
+   - **`duraci_n_del_contrato`** pasa a sospechosa (se actualiza en parte) y deja de ser respaldo en la censura (4.5).
 
 ---
 
@@ -98,7 +105,7 @@ Archivo: `data/processed/base_contratos.parquet` + `base_contratos.meta.json` (f
 
 La base **no contiene columnas de fuga**; las que se necesitan para demostrarla en el EDA se leen de `data/raw/`.
 - **Base v0** (jueves 22): mismo esquema con la muestra de la exploración (167.997 contratos de 2019-2025, unos 24.000 por año de firma), `y = y_dias` y `y_modif = NA`. Se construye con `python -m src.base`.
-- **Base v1** (domingo 25): pipeline completo.
+- **Base v1** (lunes 26 a las 12:00; ver F2): pipeline completo, con la etiqueta aprobada en la F1 (4.3).
 
 ### 2b. Función única de features
 
@@ -190,8 +197,8 @@ F0 (Kevin) ──┬─> J1 ─> J2 ─> J3 ────────────
 |---|---|---|---|
 | Jue 22 | **F0 completa**; base v0 y dummy compartidos esa noche | Setup y lectura (incluye leer los contratos de F0) | Setup y lectura (incluye documentación de Streamlit Cloud y SHAP) |
 | Vie 23 | **F1** (máximo medio día para la etiqueta) | **J1** | **G1**, con la prueba de SHAP sobre el dummy |
-| Sáb 24 - Dom 25 | **F2** (descarga de noche) + **F3** (base v1 el domingo) + inicio del EDA con v0 | J1 → **J2** | Termina **G1** |
-| Lun 26 - Mar 27 | **EDA con v1** | J2 → **J3** | **G2** con el dummy → **G3** |
+| Sáb 24 - Dom 25 | **F1** se extiende al domingo 25 (pasos 4 y 5) + **F2** desde el domingo 25 (termina a más tardar el lunes 26 a las 6:00) + inicio del EDA con v0 | J1 → **J2** | Termina **G1** |
+| Lun 26 - Mar 27 | **F3** (base v1 el lunes 26 a las 12:00) → **EDA con v1** (lunes 26 en la tarde y martes 27) | **J2** el lunes 26 con la base v0 (el `Pipeline` no depende de la etiqueta) → **J3** desde el lunes 26 en la tarde, con la v1 | **G2** con el dummy → **G3** (la simulación usa la v1 desde el lunes en la tarde) |
 | Mié 28 - Jue 29 | Revisa PRs | **J3** (modelo elegido el jueves) | **G3** + modelo real en la app |
 | Vie 30 | **README** | **Integración del notebook** | **Video** |
 | Sáb 31 | **Revisión final y entrega** | Correcciones de la revisión | Verifica la app desplegada |
@@ -199,8 +206,8 @@ F0 (Kevin) ──┬─> J1 ─> J2 ─> J3 ────────────
 | Mar 3 nov | **Sustentación** | | |
 
 **Checkpoints:**
-- Etiqueta: viernes 23 por la noche.
-- Base v1: domingo 25 por la noche.
+- Etiqueta: viernes 23 por la noche (aprobada en el checkpoint del paso 3 de la F1).
+- Base v1: lunes 26 a las 12:00 (definitiva; regla de cambio en F2).
 - Modelo elegido: jueves 29.
 - Notebook integrado: viernes 30 por la noche.
 
@@ -208,10 +215,19 @@ F0 (Kevin) ──┬─> J1 ─> J2 ─> J3 ────────────
 
 | Tarea | Límite | Si se pasa |
 |---|---|---|
-| Verificación de la etiqueta (F1) | Medio día | Si no es concluyente: `y = dias_adicionados > 0`, se documenta la limitación y F2 no descarga Modificaciones |
-| Descarga F2 | La estimación de F1 no puede pasar de **3 h** | Si el exceso viene de Modificaciones, se usa `y = y_dias`. Si viene de Contratos o Procesos (p. ej. `Crawl-delay`), se baja al 5 % (5 de las 100 terminaciones de dos dígitos) |
+| Verificación de la etiqueta (F1) | Medio día (4 h desde el 23-oct a las 21:08) | Si no es concluyente: `y = dias_adicionados > 0`, se documenta la limitación y F2 no descarga Modificaciones. **Resultado:** concluyente en 33 min; no se aplicó la salida |
+| Descarga F2: tope de planificación | La estimación de F1 no puede pasar de **3 h si F2 corre de día ni de 8 h si corre de noche**, siempre que la descarga sea reanudable. La condición original era terminar antes del domingo 25 a las 8:00; quedó superada por la fila siguiente | Si el exceso viene de Contratos o Procesos, se baja al 5 % (5 de las 100 terminaciones de dos dígitos). **Resultado (F1, paso 4):** central 1 h 18 min, cabe de día y de noche; pesimista 3 h 28 min, cabe solo de noche. Las dos caben en la ventana de ejecución, hasta el lunes 26 a las 6:00. No se aplicó la salida |
+| Descarga F2: ejecución | **Continua hasta terminar, sin pausa a las 3 h. Único límite: lunes 26 a las 6:00** (`--hasta 2026-10-26T06:00`). Reanudable: cortar en cualquier momento deja el estado consistente y reanudar no repite unidades hechas | A las 6:00 se detiene limpio (código de salida 4) y se avisa al usuario. Ya no aplica el corte duro del domingo a las 22:00 con `y = y_dias`, porque `y_dias` esconde la mitad de los positivos (12,1 % frente a 24,4 %). Solo se cae a `y_dias` si la descarga de Modificaciones falla del todo, no por retraso |
+| Peticiones a datos.gov.co | **1 por segundo, medido de inicio a inicio, en secuencia y sin paralelismo** (reglas de acceso, abajo) | Ante un 403 o un 429 que persiste, se detiene todo (`Throttled`, código de salida 3) y se avisa al usuario |
 | Búsqueda de hiperparámetros (J3) | **15 min por modelo** | Se mide un ajuste y se fija `n_iter` para no pasar el tope. kNN y SVM sobre una submuestra pequeña (~20 mil de train) |
 | `tests/test_contratos.py` | Solo las 3 verificaciones de 2d | — |
+
+**Reglas de acceso a datos.gov.co** (`robots.txt` de `www.datos.gov.co`, leído en el paso 1 de la F1; decisión del usuario del 23-oct):
+- **`Crawl-delay: 1`.** Se respeta en todas las peticiones del proyecto, API incluida: máximo 1 petición por segundo, en secuencia y sin paralelismo. No hay hilos ni dos descargas a la vez.
+- **Rate limiter de inicio a inicio (start-to-start).** El segundo se mide entre el inicio de una petición y el inicio de la siguiente, no como espera fija después de cada respuesta. Si una petición tarda más de 1 s, la siguiente sale de inmediato. Lo implementa `LimitadorTasa` en `src/cliente_socrata.py`, compartido por todas las instancias del proceso. La estimación de F2 usa ese modelo: cada petición cuesta max(1 s, latencia).
+- **Endpoints prohibidos.** El `robots.txt` prohíbe `/OData.svc/`, `/api/odata/`, `/api/collocate*` y `/views/INLINE/rows.json` (`method=clustered2`), además de varias rutas de `/browse` del catálogo web. El cliente solo acepta una lista blanca: `/resource/<id>.json` (SODA 2.x), `/api/v3/views/<id>/query.json` y `/api/views/<id>(.json)` (metadatos). Cualquier otra ruta falla sin salir a la red.
+- **Token:** solo en el header `X-App-Token`; nunca en la URL ni en los logs (4.6).
+- **Excepciones aceptadas por el usuario (25-oct):** el monitor de Contratos (1 petición cada 10 min, sin token, `count(*)` de `jbjy-vk9h`) y dos lecturas de la herramienta web del orquestador hacia las 16:35. Los reintentos con `Retry-After` cubren una coincidencia.
 
 ### Estimaciones recalculadas [ESTIMADO]
 
@@ -220,9 +236,9 @@ Supuesto: jornadas de ~8 h efectivas por persona y por día, fines de semana inc
 | Fase | Responsable | Esfuerzo | Ventana | ¿Cabe? |
 |---|---|---|---|---|
 | F0 | Kevin | 7-8 h | Jue 22 (8 h) | **Justo** |
-| F1 | Kevin | 6-7 h (etiqueta ≤ 4 h) | Vie 23 (8 h) | Sí |
-| F2 | Kevin | 4-5 h de código + 20-50 min de descarga (tope 3 h) | Sáb 24 | Sí, si la API responde como en la exploración |
-| F3 | Kevin | 5-6 h | Dom 25 | **Justo**: el fin de semana suma ~15 h de Kevin |
+| F1 | Kevin | 6-7 h (etiqueta ≤ 4 h) | Vie 23 (8 h) | No: se extendió al domingo 25 (pasos 4 y 5); la etiqueta tomó 33 min |
+| F2 | Kevin | Código hecho en la F1 (`src/descarga.py`, commit `93f2f0a`) + descarga de 1 h 18 min (central) a 3 h 28 min (pesimista) | Dom 25 - Lun 26 a las 6:00 | Sí, en las dos estimaciones |
+| F3 | Kevin | 5-6 h | Lun 26 hasta las 12:00 | **Justo**: arranca al terminar F2 |
 | F4 (EDA) | Kevin | 12-14 h (~4 h el fin de semana con v0 + ~9 h con v1) | Sáb 24 - Mar 27 | **Justo** |
 | Revisión de PRs | Kevin | ~1 h por PR (~6 PRs) + 2-3 h el notebook | Continua; vie 30 por la noche y sáb 31 | Sí |
 | README | Kevin | 3 h | Vie 30 | Sí |
@@ -239,12 +255,13 @@ Supuesto: jornadas de ~8 h efectivas por persona y por día, fines de semana inc
 ### Fase en riesgo
 
 **La de mayor riesgo es F2 + F3, el fin de semana de Kevin.**
-- **Por qué:** es el único tramo del camino crítico que depende de algo externo (la velocidad de la API, el `Crawl-delay` y Modificaciones con 30 M de filas) y concentra ~15 h de Kevin junto con el inicio del EDA. Si la base v1 se corre al martes, J3 pierde un día de sus ~3, el EDA con v1 queda en un solo día y el modelo real llega tarde al video.
+- **Por qué:** es el único tramo del camino crítico que depende de algo externo (la disponibilidad y la velocidad de la API, el `Crawl-delay` y Modificaciones con 30 M de filas) y concentra ~15 h de Kevin junto con el inicio del EDA. Si la base v1 se corre del lunes 26 a las 12:00 al martes, J3 pierde un día de sus ~3, el EDA con v1 queda en un solo día y el modelo real llega tarde al video.
 - **Mitigaciones:**
-  - Dejar `descarga.py` probado el viernes por la tarde con un mes, después de la media jornada de la etiqueta.
-  - Lanzar Contratos y Procesos el sábado temprano (no dependen de la etiqueta) y Modificaciones el sábado por la noche.
+  - `descarga.py` probado con un mes en la F1 (paso 5) y revisado; commit `93f2f0a`.
+  - F2 corre de continuo, reanudable, con el lunes 26 a las 6:00 como único límite. F3 arranca sin esperar aprobación cuando F2 pasa el chequeo de completitud (F3, abajo).
   - Escribir el EDA como funciones sobre v0 para re-ejecutarlo en v1 sin rehacerlo.
-  - **Corte duro:** si el domingo 25 a las 22:00 la base v1 no está completa, se publica una v1 con `y = y_dias` (solo Contratos + Procesos) y Modificaciones queda fuera.
+  - Contratos quedó truncado el 25-oct: se arman dos bases en dos carriles, con una regla fija para elegir cuál se publica el lunes 26 a las 12:00 (F2, abajo).
+  - **Sin corte duro con `y_dias`:** el corte del domingo 25 a las 22:00 ya no aplica. Solo se publica una v1 con `y = y_dias` si la descarga de Modificaciones falla del todo, y la decide el usuario.
 
 **Segunda en riesgo: la integración del viernes 30 (Jose).** Tiene un solo día y depende de que todo lo anterior haya llegado.
 - **Mitigaciones:**
@@ -280,18 +297,41 @@ Supuesto: jornadas de ~8 h efectivas por persona y por día, fines de semana inc
   - Revisar las columnas "por verificar" con los datos de la exploración.
   - Por la tarde: `descarga.py` probado con un mes.
 - Listo cuando: el equipo aprueba la etiqueta el viernes por la noche.
+- **Hecho en la F1** (23-25 oct; cada paso con checkpoint del usuario):
+  - **`robots.txt`:** `Crawl-delay: 1`, que se respeta también en la API (reglas de acceso, en los límites de tiempo).
+  - **Fecha de inicio:** fuga descartada en lo que el método puede ver; "segura con limitación" (sección 0, punto 12, y `docs/LISTA_FUGA.md`, sección 6). Sin ablación en la F1: pasa a J3.
+  - **Etiqueta:** concluyente en 33 min; definición aprobada en 4.3.
+  - **Conteo por dígito y mediciones:** 142 peticiones el 24-oct; dígito 4, lotes de 500 IDs y Modificaciones por listas de IDs (4.1 y 4.3). Estimación de F2 en los límites de tiempo.
+  - **`src/cliente_socrata.py` y `src/descarga.py`:** probados con un mes (Contratos ya estaba truncado, así que el mes tuvo 6 contratos), con corte y reanudación sobre las 84 unidades de Contratos; revisión de código aprobada; commit `93f2f0a`. Queda la prueba de varios lotes de Procesos y Modificaciones, que cubre la corrida del carril B.
+  - **Columnas "por verificar":** solo se revisó `duraci_n_del_contrato` (sospechosa). Las demás siguen por verificar y van a la ablación de J3 (`docs/LISTA_FUGA.md`, sección 5).
+  - **`docs/LISTA_FUGA.md` v1** escrita en el cierre de la F1.
 
-**F2. Descarga (sáb 24, de noche)**
-- Rama: `feat/descarga-secop`.
-- Tareas [MÍNIMO]: `src/descarga.py` (4.6). Reutiliza `soql`, `in_list`, `Throttled` y `por_lotes` de `00_exploracion/secop_descarga.py`, con timeout de 30 s, 3 reintentos y App Token.
-- Contratos y Procesos se lanzan temprano; Modificaciones, de noche.
-- Listo cuando: el manifiesto no tiene lotes pendientes y el conteo por año cuadra con el 10 % de la población (±2 %).
+**F2. Descarga (dom 25 - lun 26 a las 6:00)**
+- Rama: se trabaja en `data/verificacion-etiqueta`, sin cambiar de rama durante F2 y F3. Al llegar a cada commit se proponen la rama y los archivos y se espera la aprobación del usuario. `data/` no se versiona.
+- Tareas [MÍNIMO]: `src/descarga.py` (4.6), hecho en la F1 (commit `93f2f0a`) sobre `src/cliente_socrata.py`: timeout de 30 s, 3 intentos y App Token en el header. Comando, desde `final-project/`: `.venv/Scripts/python.exe -m src.descarga --hasta 2026-10-26T06:00`; el mismo comando reanuda.
+- Orden, en secuencia: Contratos (84 unidades mes × dígito 4, en páginas de 10.000) → Procesos (~883 lotes de 500 IDs) → Modificaciones (~906 lotes de 500 IDs). Corte único para los tres conjuntos: la hora de arranque, guardada en el manifiesto y aplicada como `fecha_version <= corte` en Modificaciones.
+- Listo cuando: el manifiesto no tiene unidades pendientes ni fallidas, el conteo por año × dígito cuadra con el conteo exacto (4.1) y el conteo por año cuadra con el 10 % de la población (±2 %). `completitud.json` lo registra, y `descarga.py` sale con un código distinto de 0 si algo no cuadra o queda una unidad sin hacer.
+- **Limitación aceptada por el usuario:** el corte se guarda en hora local sin zona. Si `fecha_version` viene en UTC, el corte efectivo queda hasta 5 h antes de la hora de arranque, lo que es conservador. La corrección va con el modo de Contratos local del carril B y se documenta en `docs/BASE_V1.md`.
 
-**F3. Base v1 y calidad (dom 25)**
-- Rama: `data/base-contratos-v1`.
-- Tareas [MÍNIMO]: `src/etiqueta.py`, censura (4.5), `src/calidad.py` (4.7) y `docs/LISTA_FUGA.md`.
+**Incidente de Contratos y decisión C (domingo 25 de octubre)**
+- **Hecho:** desde el 25-oct a las 00:48 (hora de Colombia), Contratos (`jbjy-vk9h`) tiene solo 1.000 filas en el portal; el 24-oct a las 11:22 tenía 5,6 M. Procesos y Modificaciones están normales. Un monitor sin token lee el conteo cada 10 minutos.
+- **Decisión C del usuario: dos bases en dos carriles.**
+  - **Carril B (esa noche):** base v1 sobre la muestra de la exploración (foto del 14-oct: 167.997 contratos de 2019-2025, 2.000 por mes). Contratos se lee de los archivos locales y solo se descargan Procesos y Modificaciones, con corte el 2026-10-14 a las 22:53 (hora de Colombia). Luego F3 sobre B.
+  - **Carril A (condicional):** F2 normal (dígito 4, 452.515 contratos) si Contratos vuelve a un conteo normal antes del lunes 26 a las 2:30. Se lanza sin esperar al usuario, con `--hasta 2026-10-26T06:00`, y luego F3 sobre A.
+  - Nunca corren dos descargas a la vez. Si A arranca con una descarga de B en curso, gana A: B se pausa con corte limpio y se reanuda cuando A termina. F3 de B sí puede solaparse con la descarga de A, porque F3 no usa la red.
+- **Regla de las 12:00:** la base que se publica el lunes 26 a las 12:00 es la definitiva. Si A terminó y el usuario aprobó su reporte de calidad antes de esa hora, se publica A; si no, B. No se cambia después de las 12:00.
+- **Desviación de B respecto a lo aprobado:** lo aprobado era el 10 % por dígito 4, proporcional por año. B es un muestreo estratificado por mes con asignación igual (2.000 por mes), así que no es autoponderada y lleva pesos por mes.
+- **Qué base quedó y por qué** se documenta al final de la corrida B/A (`docs/BASE_V1.md`), no en el cierre de la F1.
+
+**F3. Base v1 y calidad (lun 26, hasta las 12:00)**
+- Rama: se trabaja en `data/verificacion-etiqueta`, como F2. La rama del commit (`data/base-contratos-v1` en el plan original) se propone al llegar a él.
+- Arranca sin esperar aprobación cuando F2 termina y pasa el chequeo de completitud. Se detiene en el reporte de calidad y antes de cada commit, y también si algo falla o un chequeo no pasa.
+- Tareas [MÍNIMO]:
+  - `src/etiqueta.py` con la definición aprobada (4.3). Deduplica las filas exactas de Modificaciones (10,4 % en la muestra del paso 3 y 15,4 % en la del paso 4), filtra `fecha_version <= corte` y guarda `y`, `y_dias` e `y_modif`.
+  - Censura (4.5), `src/calidad.py` (4.7) y la base v1 con su `meta.json` y sha256.
+  - Los cambios de código de `docs/LISTA_FUGA.md`, sección 8: `COLUMNAS_FUGA`, estado de las dos features de la fecha de inicio y lista PII de `src/config.py`.
 - [EXTRA] Detector de columnas mutables.
-- Listo cuando: la calidad pasa y la base v1 está compartida con su sha256 el domingo por la noche (corte duro a las 22:00).
+- Listo cuando: la calidad pasa y la base v1 está compartida con su sha256 el lunes 26 a las 12:00.
 
 **F4. EDA (sáb 24 - mar 27)**
 - Rama: `feat/eda`, en el borrador `notebooks/03_eda.ipynb`.
@@ -327,7 +367,7 @@ Supuesto: jornadas de ~8 h efectivas por persona y por día, fines de semana inc
 - Tareas [MÍNIMO]: `ColumnTransformer` por familia de modelo (categorías nativas para HGB; one-hot + escalado para kNN y SVM; `TargetEncoder` para la entidad), faltantes y atípicos, todo justificado. Para el HGB deja listas las dos variantes (con y sin categorías nativas), porque J3 las compara por su efecto en SHAP (sección 0, punto 7).
 - Listo cuando: todo vive en el `Pipeline` y se ajusta solo con train. Ese `Pipeline` es el que Geronimo usa en G3.
 
-**J3. Modelado y selección (lun 26 - jue 29)**
+**J3. Modelado y selección (desde el lun 26 en la tarde, con la v1, hasta el jue 29)**
 - Rama: `feat/modelado`.
 - Tareas [MÍNIMO]:
   - kNN, árbol, RF, HGB y SVM, con búsqueda sobre `folds_temporales` y **tope de 15 min por modelo**; kNN y SVM sobre submuestra.
@@ -335,6 +375,8 @@ Supuesto: jornadas de ~8 h efectivas por persona y por día, fines de semana inc
   - Variante C sin `visualizaciones_del`.
   - Test 2024 una sola vez; deriva 2025 (i) y, si da el tiempo, (ii).
   - **SHAP global enlazado a H1-H7**; sensibilidad `y` frente a `y_dias`.
+  - **Ablación explícita: HGB final sin `dias_firma_a_inicio` ni `fin_planeado_cruza_anio`, contra la regla, global y dentro de entidad. Si la ventaja cae de forma importante, se documenta como limitación en 3.6.** (Decisión del checkpoint del paso 2 de la F1; `docs/LISTA_FUGA.md`, sección 6.)
+  - Las referencias de la F0 se midieron con `y_dias` sobre la base v0; las de J3 se miden con la base v1 (sección 0, punto 12).
   - **Decisión sobre categorías nativas y SHAP (sección 0, punto 7):** medir el PR-AUC del HGB con y sin categorías nativas y elegir (a) o (b). Evidencia previa de la F0: los códigos ordinales no pierden (0,766 / 0,344 frente a 0,752 / 0,336 en los maduros de 2024; una corrida, sin intervalo; sección 0, punto 11). El artefacto v1 y la app usan el mismo explicador, y se verifica la aditividad de SHAP en el modelo final.
   - Resultados de la búsqueda guardados en `resultados/`; artefacto v1.
   - Decidir si el modelo de producción se reentrena con 2019-2025.
@@ -375,7 +417,8 @@ Supuesto: jornadas de ~8 h efectivas por persona y por día, fines de semana inc
 - Rama: `feat/reajuste`.
 - Tareas [MÍNIMO]:
   - `src/monitoreo.py`: PR-AUC de los contratos que van madurando, PSI del puntaje y de las features clave, tasa base, criterio de alarma y de reentrenamiento, validación campeón/retador, y cómo se pondría en producción una v2.
-  - Simulación con el `Pipeline` de J2 + HGB por defecto entrenado en 2019-2023, recorriendo 2024-2025 mes a mes (o por trimestre si se aprieta), para mostrar dónde salta la alarma.
+  - Simulación con el `Pipeline` de J2 + HGB por defecto entrenado en 2019-2023, recorriendo 2024-2025 mes a mes (o por trimestre si se aprieta), para mostrar dónde salta la alarma. Usa la base v1 desde el lunes 26 en la tarde.
+  - **Ejemplo de alarma:** el salto de 2025 en `y_dias` es un cambio de registro (`dias_adicionados` guarda solo la última modificación publicada), no un cambio de comportamiento (sección 0, punto 12). La simulación lo presenta así.
 - Listo cuando: la simulación corre, los umbrales están justificados y el borrador de §3.8-3.9 está listo el jueves 29.
 
 **Video (vie 30):** se graba con la app desplegada y el modelo v1.
@@ -411,14 +454,44 @@ La etiqueta y la descarga ya tienen su salida en los límites de tiempo.
 ### 4.1 Volumen y RAM: decidido, 10 % por dígito
 
 - **Muestra:** aleatoria del 10 % por último dígito de `id_contrato`. Es proporcional por año y reproducible.
-- **Tamaño:** ~450 mil contratos 2019-2025 (train ~260 mil, test 2024 ~88 mil, test 2025 ~102 mil).
-- **Costo:** descarga de 20-50 min (tope de 3 h); pico de RAM < 2-3 GB procesando por meses; base v1 de ~150-300 MB en memoria [ESTIMADO].
+- **Tamaño:** con el dígito 4, 452.515 contratos 2019-2025 (train 261.842, test 2024 88.548, test 2025 102.125) [VERIFICADO, conteo del 24-oct].
+- **Costo:** descarga de 1 h 18 min (central) a 3 h 28 min (pesimista) [ESTIMADO en la F1, paso 4]; pico de RAM < 2-3 GB procesando por meses; base v1 de ~150-300 MB en memoria [ESTIMADO].
+- **Dígito: el 4, no el sorteado** (checkpoint del paso 4 de la F1). El dígito sorteado con `default_rng(42)` fue el 0. F2 usa el 4 por estas razones, en este orden:
+  1. El criterio es la proporcionalidad por año. El 0 se desvía -6,8 % en 2019 y no cumple el ±2 % relativo en 2019-2022.
+  2. El 4 es el único, junto con el 5, que queda dentro de ±2 % en todos los años (desvío máximo de 1,39 % el 4 y 0,21 % el 5). Entre los dos se prefiere el 4 por su menor desviación en la tasa de `y_dias`: 0,27 pp como máximo, frente a 0,94 pp del 5 en 2019.
+  3. La tasa de `y_dias` se usó solo como control, no como criterio de selección: solo desempató entre el 4 y el 5, que ya cumplían el criterio de tamaño.
+
+**Contratos por año de firma y último dígito** [VERIFICADO; 10 consultas `count(*)` del 2026-10-24 a las 11:22]. La suma de los 10 dígitos es igual al total sin filtro en todos los años. 2019-2024 coincide con `meta/poblacion_contratos_por_anio.csv` (14-oct) y 2025 tiene 1 contrato más. La columna del dígito 4 es el conteo exacto contra el que F2 hace el chequeo de completitud.
+
+| Año | 0 | 1 | 2 | 3 | **4** | 5 | 6 | 7 | 8 | 9 | Población | 10 % |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2019 | 13.240 | 15.751 | 15.056 | 14.622 | **14.407** | 14.239 | 13.881 | 13.816 | 13.649 | 13.429 | 142.090 | 14.209 |
+| 2020 | 34.097 | 37.996 | 36.952 | 36.378 | **36.107** | 35.670 | 35.246 | 35.159 | 34.649 | 34.369 | 356.623 | 35.662 |
+| 2021 | 54.306 | 58.544 | 57.421 | 56.857 | **56.469** | 56.127 | 55.707 | 55.386 | 55.025 | 54.599 | 560.441 | 56.044 |
+| 2022 | 69.303 | 73.292 | 72.022 | 71.406 | **71.095** | 70.901 | 70.406 | 70.015 | 69.853 | 69.472 | 707.765 | 70.777 |
+| 2023 | 81.943 | 86.446 | 84.923 | 84.074 | **83.764** | 83.621 | 83.112 | 82.797 | 82.551 | 82.231 | 835.462 | 83.546 |
+| 2024 | 86.377 | 90.788 | 89.465 | 88.924 | **88.548** | 88.243 | 87.875 | 87.830 | 87.196 | 86.732 | 881.978 | 88.198 |
+| 2025 | 99.935 | 104.669 | 103.018 | 102.412 | **102.125** | 101.663 | 101.378 | 100.918 | 100.638 | 100.319 | 1.017.075 | 101.708 |
+| **2019-2025** | 439.201 | 467.486 | 458.857 | 454.673 | **452.515** | 450.464 | 447.605 | 445.921 | 443.561 | 441.151 | 4.501.434 | 450.143 |
+
+**Desvío del tamaño de cada dígito frente al 10 % exacto** (%, relativo):
+
+| Año | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2019 | -6,82 | +10,85 | +5,96 | +2,91 | +1,39 | +0,21 | -2,31 | -2,77 | -3,94 | -5,49 |
+| 2020 | -4,39 | +6,54 | +3,62 | +2,01 | +1,25 | +0,02 | -1,17 | -1,41 | -2,84 | -3,63 |
+| 2021 | -3,10 | +4,46 | +2,46 | +1,45 | +0,76 | +0,15 | -0,60 | -1,17 | -1,82 | -2,58 |
+| 2022 | -2,08 | +3,55 | +1,76 | +0,89 | +0,45 | +0,18 | -0,52 | -1,08 | -1,30 | -1,84 |
+| 2023 | -1,92 | +3,47 | +1,65 | +0,63 | +0,26 | +0,09 | -0,52 | -0,90 | -1,19 | -1,57 |
+| 2024 | -2,06 | +2,94 | +1,44 | +0,82 | +0,40 | +0,05 | -0,37 | -0,42 | -1,14 | -1,66 |
+| 2025 | -1,74 | +2,91 | +1,29 | +0,69 | +0,41 | -0,04 | -0,32 | -0,78 | -1,05 | -1,37 |
+| **Máx. absoluto** | 6,82 | 10,85 | 5,96 | 2,91 | **1,39** | **0,21** | 2,31 | 2,77 | 3,94 | 5,49 |
 - **Control de RAM:**
   - Procesar mes a mes y solo con las columnas necesarias.
   - Tipos explícitos (category, float32, Int16, `string[pyarrow]`).
   - Nada de `dtype=str` para la tabla entera.
   - Registrar el pico con `psutil`.
-- **Otras opciones:** el 20 % es [EXTRA]; el 5 % es la salida si F2 pasa de 3 h; la población completa se descarta.
+- **Otras opciones:** el 20 % es [EXTRA]; el 5 % es la salida si la estimación de F2 pasa del tope (3 h de día, 8 h de noche; no hizo falta); la población completa se descarta.
 
 ### 4.2 Columnas a descargar (verificadas contra `meta/*.json`) [VERIFICADO]
 
@@ -427,7 +500,7 @@ La etiqueta y la descarga ya tienen su salida en los límites de tiempo.
 - Entidad: `nombre_entidad`, `nit_entidad`, `departamento`, `ciudad`, `orden`, `sector`, `rama`, `entidad_centralizada`.
 - Diseño: `tipo_de_contrato`, `modalidad_de_contratacion`, `justificacion_modalidad_de`, `codigo_de_categoria_principal`, `objeto_del_contrato`, `es_grupo`, `es_pyme`, `tipodocproveedor`, `habilita_pago_adelantado`, `valor_de_pago_adelantado`, `origen_de_los_recursos`, `destino_gasto`, `espostconflicto`, `documentos_tipo`, `el_contrato_puede_ser_prorrogado` (por verificar; excluida de `FEATURES`, sección 0, punto 10).
 - Fuentes de recursos (fuga confirmada; solo en `data/raw/` para el EDA de fuga, nunca en la base): `presupuesto_general_de_la_nacion_pgn`, `sistema_general_de_participaciones`, `sistema_general_de_regal_as`, `recursos_propios_alcald_as_gobernaciones_y_resguardos_ind_genas_`, `recursos_de_credito`, `recursos_propios`.
-- Fechas (por verificar): `fecha_de_inicio_del_contrato`, `duraci_n_del_contrato`.
+- Fechas: `fecha_de_inicio_del_contrato` (segura con limitación) y `duraci_n_del_contrato` (sospechosa: solo en `data/raw/`, nunca en la base), según `docs/LISTA_FUGA.md` v1.
 - Etiqueta: `dias_adicionados`.
 - Solo en `data/raw/` (EDA de fuga, nunca en la base): `fecha_de_fin_del_contrato`, `estado_contrato`, `valor_del_contrato`.
 - **No se descargan:** las 21 PII de `secop_descarga.py` + `codigo_proveedor` (PII ampliada); pagos, saldos, liquidación, reversión, `ultima_actualizacion`, `fecha_de_notificaci_n_de_prorrogaci_n`.
@@ -440,9 +513,9 @@ La etiqueta y la descarga ya tienen su salida en los límites de tiempo.
 - **No se descargan:** `visualizaciones_del`, `estado_del_procedimiento`, `id_estado_del_procedimiento`, `estado_resumen`, `fase`, `estado_de_apertura_del_proceso`, `fecha_de_ultima_publicaci`, y por PII ampliada `nombre_del_adjudicador`, `nombre_del_proveedor`, `nit_del_proveedor_adjudicado`, `codigoproveedor`.
 
 **Modificaciones (`u8cx-r425`):**
-- Verificación: `id_contrato`, `identificador`, `numero_version`, `estado_modificacion`, `dias_extendidos`, `fecha_creacion`, `fecha_de_aprobacion`, `fecha_version`, `fecha_inicio_contrato`, `fecha_fin_contrato`, `proposito_modificacion`, `descripcion`, `valor_modificacion`, `sustituto_version`.
-- Etiqueta (filtro en el servidor `dias_extendidos > 0`): `id_contrato`, `numero_version`, `estado_modificacion`, `dias_extendidos`, `fecha_de_aprobacion`, `fecha_fin_contrato`.
-- No se descarga `autor_version` (PII ampliada).
+- Verificación (solo en la F1, ya hecha): `id_contrato`, `identificador`, `identificador_modificacion`, `numero_version`, `version_anterior_del_contrato`, `estado_modificacion`, `dias_extendidos`, `fecha_creacion`, `fecha_de_aprobacion`, `fecha_version`, `fecha_inicio_contrato`, `fecha_fin_contrato`, `proposito_modificacion`, `descripcion`, `valor_modificacion`.
+- Etiqueta (F2), con el filtro de servidor `estado_modificacion = 'Publicado' AND dias_extendidos > 0 AND fecha_version <= corte`: `id_contrato`, `identificador_modificacion`, `version_anterior_del_contrato`, `fecha_version`, `estado_modificacion`, `dias_extendidos`, `fecha_de_aprobacion`, `fecha_fin_contrato`. `identificador_modificacion`, `version_anterior_del_contrato` y `fecha_version` sirven para deduplicar y ordenar.
+- **No se descargan:** `autor_version` y `sustituto_version` (PII ampliada; `sustituto_version` puede ser un ID de usuario), `proposito_modificacion` (texto libre que a veces trae nombres de personas; pasa a la lista PII) y `descripcion` (es el objeto del contrato). `src/descarga.py` lo impide con un `assert`.
 
 ### 4.3 Etiqueta (máximo medio día el viernes 23)
 
@@ -459,7 +532,32 @@ La etiqueta y la descarga ya tienen su salida en los límites de tiempo.
 
 **Si no es concluyente al mediodía:** `y = dias_adicionados > 0`; la subestimación (59 % en la submuestra) se documenta como limitación en §3.3 y §3.6, y F2 no descarga Modificaciones.
 
-**Costo de la etiqueta combinada:** ~3.000 lotes de 150 IDs, ~150-300 mil filas filtradas, 8-35 min con 3 hilos [ESTIMADO; se mide en F1].
+**Resultado de la F1 (paso 3, 23-oct de 21:08 a 21:41): concluyente; definición aprobada en el checkpoint.**
+
+> `y = 1` si `dias_adicionados > 0` **o** existe una modificación con estado `Publicado`, `dias_extendidos > 0` y `fecha_de_aprobacion > fecha_de_firma + 1 día`.
+
+- **"Efectiva" = `Publicado`** (P2). El fin vigente en Contratos es el de la última modificación publicada en 1.520 de 1.521 contratos, y ninguna modificación no publicada se refleja en Contratos.
+- **Margen de 1 día** al comparar `fecha_de_aprobacion` (Modificaciones) con `fecha_de_firma` (Contratos), por el desfase de zona horaria del paso 2 (P3). Solo 3 de 1.546 extensiones caen dentro del margen, todas en un contrato.
+- **Nombre del objetivo: "ampliación del plazo"** (P4): el contrato terminó después de lo pactado al firmar. Las suspensiones y los ajustes de fecha cuentan como positivos y son cerca del 2,4 % de los contratos positivos. El 69 % de las extensiones son prórrogas o adiciones y el 25 % tiene texto genérico, así que la proporción real de suspensiones no se conoce.
+- **Se mantiene el "o `dias_adicionados > 0`"** (P5): frente a usar solo Modificaciones cambia un contrato. Todo `y_dias = 1` tiene su modificación (396 de 396).
+- **`dias_extendidos`** es incremental en 2021-2025 y acumulado en 2020-2021 y en 2026 (P1). Para la etiqueta binaria no importa. Para contar días se usa el cambio de `fecha_fin_contrato`, no `sum` ni `max`.
+- **Tasas** (1.400 contratos al azar, 200 por año de firma): `y_dias` 12,1 % y la etiqueta aprobada 24,4 %. En 2024 pasa de 9,0 % a 21,5 % [16,4, 27,7]; corrigiendo por la captura de `y_dias`, la tasa poblacional de 2019-2024 sería ~26 % [ESTIMADO]. La hipótesis del EDA queda apoyada con un matiz (sección 0, punto 12).
+- **F2 descarga Modificaciones** con el filtro de servidor de 4.2, que da los mismos contratos positivos que el análisis por modificación (788 de 788).
+
+**Costo de la etiqueta combinada:** ~906 lotes de 500 IDs, en secuencia a 1 petición por segundo, de 55 min (central) a 135 min (pesimista) [ESTIMADO en la F1, paso 4]. La estimación anterior (~3.000 lotes de 150 IDs, 8-35 min con 3 hilos) suponía un paralelismo que el `Crawl-delay` no permite. Pedir Modificaciones por rango de fechas resultó más lento y poco fiable: el 45 % de las consultas mensuales pasó de 30 s.
+
+**Volumen de Modificaciones (filas por contrato).** Las dos muestras de la F1 incluyen los duplicados exactos, así que el 0,57 del paso 3 y el 0,69 del paso 4 no se concilian restando el 15,4 % de duplicados:
+
+| Base | Paso 3 (1.400 contratos, 200 por año) | Paso 4 (7.000 contratos del dígito 0 de la base v0) |
+|---|---|---|
+| Filas por contrato, con duplicados | 0,569 | 0,692 |
+| Filas por contrato, sin duplicados exactos | 0,511 | 0,585 |
+| Duplicados exactos (columnas mínimas) | 10,2 % | 15,4 % |
+| Reponderado por la población, con duplicados | 0,604 | 0,628 |
+| Reponderado por la población, sin duplicados | 0,533 | 0,529 |
+
+- Ninguna de las dos muestras sigue a la población: el paso 3 pesa los 7 años por igual, y el paso 4 viene de la base v0, donde 2025 pesa 12,7 % (22,6 % en la población). Reponderadas, la diferencia baja a 0,024 con duplicados y a -0,004 sin ellos. El resto es variación muestral: el IC 95 % de la diferencia es [-0,091, +0,139] con duplicados.
+- **Volumen para el dígito 4:** ~284.000 filas con duplicados [IC 95 % ~262.000-307.000] y ~239.000 sin ellos [ESTIMADO]. La cifra de ~313.000 (0,692 sin reponderar) queda como cota alta. El número de peticiones no cambia.
 
 ### 4.4 Deduplicación de Procesos y verificación del join
 
@@ -475,7 +573,7 @@ La etiqueta y la descarga ya tienen su salida en los límites de tiempo.
 ### 4.5 Censura
 
 - No se usa `fecha_de_fin_del_contrato`, porque depende de la etiqueta.
-- `eval_fin_planeado` = inicio (o la firma, si falta) + duración planeada. La duración sale del proceso; si falta, de `duraci_n_del_contrato`, siempre que F1 confirme que no se actualiza. En la v0 no hay respaldo: si falta la duración del proceso (0,26 % de los contratos), `eval_madura` queda en `False`.
+- `eval_fin_planeado` = inicio (o la firma, si falta) + duración planeada. La duración sale solo del proceso, sin respaldo: la F1 encontró que `duraci_n_del_contrato` se actualiza en parte (sospechosa en `docs/LISTA_FUGA.md`). Si falta la duración del proceso (0,26 % de los contratos en la v0), `eval_madura` queda en `False`.
 - `eval_madura` = fin planeado + 60 días ≤ fecha de corte. La prórroga debe firmarse antes del vencimiento [SUPUESTO legal].
 - Train y test solo con contratos maduros.
 - Se reportan:
@@ -494,19 +592,20 @@ data/processed/  base_contratos.parquet · base_contratos.meta.json · reporte_c
 - **Nombres deterministas:** cada lote se nombra por el hash de sus IDs ordenados. Las respuestas vacías se guardan como parquet vacío con esquema.
 - **Manifiesto:** dataset, clave, filas, bytes, segundos, fecha, estado y sha256.
 - **Requests:**
-  - Timeout de 30 s, 3 reintentos con espera creciente y parada ante 403/429 (`Throttled`).
-  - ≤ 3 hilos, o secuencial con 1 s si el `robots.txt` lo exige.
-  - Paginación estable por `id_contrato`.
+  - Timeout de 30 s y 3 intentos con espera creciente. En `descarga.py`, la espera es exponencial y respeta `Retry-After`; 403 o un 429 que persiste detienen todo (`Throttled`).
+  - En secuencia, sin hilos: 1 petición por segundo de inicio a inicio, por el `Crawl-delay: 1` (reglas de acceso, en los límites de tiempo de la sección 3).
+  - Lotes de 500 IDs para Procesos y Modificaciones; si la URL preparada pasa de 15.000 caracteres, el lote se parte en dos (en la F1 el servidor respondió 200 con 15.592 caracteres y 414 con 17.299).
+  - Paginación estable con `$order=:id` (en la F1, la misma consulta en una página o en cuatro dio las mismas filas en el mismo orden).
   - Log ASCII con lote i/N, filas, tiempo transcurrido, ETA y RAM.
 - **App Token:**
   - Variable `SOCRATA_APP_TOKEN`. En local se lee de `final-project/.env` con un lector simple de líneas (sin `python-dotenv`); en la app, de `st.secrets`.
-  - Se envía en el header `X-App-Token` [SUPUESTO; se confirma con la documentación de Socrata].
+  - Se envía solo en el header `X-App-Token` [VERIFICADO en la F1 con la documentación de Socrata; nunca va en la URL ni en los logs].
   - El token no se comparte por chat ni se sube al repo (que es público): Kevin crea el `.env` y el código solo lee la variable.
 
 ### 4.7 Chequeos de calidad (`src/calidad.py`, fallan con error)
 
 1. `id_contrato` único; el join no duplica; ninguna columna PII; `FEATURES ∩ COLUMNAS_FUGA = ∅`.
-2. Tamaño por año = 10 % de la población (±2 %), con `meta/poblacion_contratos_por_anio.csv`.
+2. Tamaño por año = 10 % de la población (±2 %), con `meta/poblacion_contratos_por_anio.csv`, y completitud contra el conteo exacto por año × dígito (tabla de 4.1). El conteo exacto detecta lotes que faltan; el 10 % solo mide representatividad.
 3. Tasa de `y_dias` por año en la muestra frente a la población (±1,5 pp).
 4. Rangos de fechas (años 0025 y 8201 → NaT), montos ≥ 0, duración entre 1 y 3.650 días.
 5. ≥ 95 % de los contratos con proceso; faltantes por feature; dtypes iguales al esquema.
@@ -515,22 +614,25 @@ data/processed/  base_contratos.parquet · base_contratos.meta.json · reporte_c
 
 ### 4.8 `docs/LISTA_FUGA.md`
 
-Columnas de la tabla: **Columna o derivado | Conjunto | Por qué es fuga | Evidencia | Estado (confirmada / por verificar / segura) | Uso permitido (ninguno / solo etiqueta / solo censura / solo EDA)**. `COLUMNAS_FUGA` es su espejo ejecutable.
+**La lista vigente es `docs/LISTA_FUGA.md` (v1, cierre de la F1).** Esta tabla es la versión preliminar del plan, con las filas que cambiaron en la F1 ya actualizadas.
+
+Columnas de la tabla: **Columna o derivado | Conjunto | Por qué es fuga | Evidencia | Estado (confirmada / sospechosa / etiqueta / por verificar / descartada, segura con limitación) | Uso permitido (ninguno / solo etiqueta / solo censura / solo EDA / solo ablación / feature)**. `COLUMNAS_FUGA` es su espejo ejecutable; los cambios de código que faltan están en `docs/LISTA_FUGA.md`, sección 8.
 
 | Columna | Estado | Evidencia o motivo | Uso |
 |---|---|---|---|
 | `estado_contrato` | Confirmada | AUC 0,94 | Solo EDA |
-| `fecha_de_fin_del_contrato` y derivados | Confirmada | Razón de duración 1,44 frente a 1,00; AUC 0,71 | Solo EDA |
+| `fecha_de_fin_del_contrato` y derivados | Confirmada | Razón de duración 1,44 frente a 1,00; AUC 0,71. F1: es el fin de la última modificación publicada (o 1 día antes) en 1.520 de 1.521 contratos | Solo EDA |
 | `valor_del_contrato` | Confirmada | Razón de valor 1,18 frente a 1,00 | Solo EDA |
 | Pagos, facturado, amortizado, pendientes, saldos (8 columnas) | Confirmada | Ejecución posterior (pendientes: AUC 0,63) | Ninguno |
 | `ultima_actualizacion` | Confirmada | AUC 0,74 | Ninguno |
 | Liquidación y reversión (6 columnas) | Confirmada | Posteriores al contrato | Ninguno |
 | `fecha_de_notificaci_n_de_prorrogaci_n` | Confirmada | Registra la propia prórroga | Ninguno |
-| `dias_adicionados`; dataset Modificaciones | Etiqueta | Definen `y` | Solo etiqueta |
+| `dias_adicionados`; dataset Modificaciones | Etiqueta | Definen `y`. F1: `dias_adicionados` copia los días de la última modificación publicada y vuelve a 0 con modificaciones posteriores sin días (sesgo de captura) | Solo etiqueta |
 | Procesos: visualizaciones, estados, fase, última publicación | Confirmada (reglas) | Estados actuales o acumulados | Ninguno |
 | Ejecución y Adiciones (datasets) | Confirmada | Posteriores a la firma | Ninguno |
 | 6 montos de fuentes de recursos | Confirmada | Su suma es igual a `valor_del_contrato` en el 80,6 %; cociente sobre el precio base de 1,26 con adición en el valor frente a 1,00 | Solo EDA |
-| `fecha_de_inicio_del_contrato`, `duraci_n_del_contrato` | Por verificar | ¿Se actualizan? Prioridad 1 de F1: % que cambia frente a la primera versión de Modificaciones, por `y` | Pendiente |
+| `fecha_de_inicio_del_contrato` (y `dias_firma_a_inicio`, `fin_planeado_cruza_anio`) | Descartada, segura con limitación | F1: cambia en el 17,3 % de los `y = 1` frente al 13,4 % de los `y = 0` (p = 0,37), casi todo por un desfase de 1 día. No ve cambios anteriores a la primera modificación | Feature; ablación en J3 |
+| `duraci_n_del_contrato` | Sospechosa | F1: es igual al plazo ya extendido en el 24 % de los `y_dias = 1` | Ninguno (no es respaldo en la censura) |
 | `el_contrato_puede_ser_prorrogado` | Por verificar, excluida | ¿Se edita después de la firma? ROC-AUC univariado 0,561 (sección 0, punto 10) | Solo ablación |
 | Conteos de competencia, `valor_total_adjudicacion` | Por verificar | ¿Cambian después de la firma? | Pendiente |
 
@@ -559,18 +661,19 @@ Los límites son de memoria y **[SUPUESTO]**; Geronimo los confirma con la docum
 | Riesgo | Mitigación |
 |---|---|
 | **Disponibilidad del equipo** | Supuesto de 8 h/día por persona sin confirmar; Kevin confirma la disponibilidad real del equipo el miércoles 21. Si es menor, se aplica el orden de recortes de la sección 3. |
-| **Fin de semana de Kevin (F2 + F3): camino crítico con dependencia externa** | `descarga.py` probado el viernes; Contratos y Procesos temprano el sábado; corte duro el domingo a las 22:00 con `y = y_dias`; tope de 3 h |
+| **Fin de semana de Kevin (F2 + F3): camino crítico con dependencia externa** | `descarga.py` probado en la F1 (commit `93f2f0a`); F2 continua y reanudable hasta el lunes 26 a las 6:00; F3 encadenada; base v1 definitiva el lunes 26 a las 12:00. Ya no hay corte duro con `y = y_dias`: solo si la descarga de Modificaciones falla del todo |
+| **Contratos (`jbjy-vk9h`) truncado a 1.000 filas desde el 25-oct a las 00:48** | Decisión C: carril B con la foto local del 14-oct y carril A si Contratos se recupera antes del lunes 26 a las 2:30; regla de las 12:00 para elegir la base (F2) |
 | **Integración en un solo día (vie 30)** | Borradores en formato final el jueves por la noche; esqueleto del notebook el jueves; resultados de la búsqueda guardados; ejecución ≤ 20 min; revisión de Kevin el viernes por la noche |
 | **SHAP da atribuciones incorrectas sin avisar:** `TreeExplainer` con las categorías nativas del HGB (error de aditividad hasta 13,6 log-odds) [VERIFICADO con datos sintéticos] | Prueba de aditividad obligatoria en G1 y en el modelo final; decisión (a) `shap.Explainer` genérico o (b) sin categorías nativas, medida en J3; par fijado en la F0 (`scikit-learn` 1.9.0 + `shap` 0.54.1); los metadatos guardan las versiones |
-| Límite de uso de la API | App Token; `Throttled`; caché reanudable; ≤ 3 hilos |
-| `Crawl-delay: 1` aplica a la API | Se lee en F1; si F2 pasa de 3 h, se baja al 5 % |
-| Etiqueta no concluyente | Medio día como máximo; si no alcanza, `y_dias` con la limitación documentada |
+| Límite de uso de la API | App Token; `Throttled`; caché reanudable; en secuencia, 1 petición por segundo de inicio a inicio |
+| `Crawl-delay: 1` aplica a la API | Resuelto en la F1: se respeta (reglas de acceso, sección 3). La estimación de F2 ya lo incluye y cabe, así que no se bajó al 5 % |
+| Etiqueta no concluyente | Resuelto en la F1: concluyente en 33 min (4.3) |
 | RAM en laptops | Procesar por mes, tipar, submuestra para kNN y SVM, `psutil` |
 | Censura | Fin planeado, solo contratos maduros, métricas por duración |
 | Fuga sutil | Columnas "por verificar", alarma de AUC univariado, variante C recalculada |
-| **La ventaja del modelo limpio sobre la regla por entidad es modesta** (ROC-AUC +0,037 [+0,011, +0,069]; PR-AUC +0,056 [+0,003, +0,113]) y depende de 3 features que usan `fecha_de_inicio_del_contrato`, que está por verificar. | Verificar esa fecha en F1 (prioridad 1); medir el desempeño en entidades no vistas y la precisión en los primeros *k*; etiqueta mejorada, muestra del 10 % y ajuste de hiperparámetros en J3. Si al final no gana con claridad, se reporta con honestidad y se evalúa el valor del modelo en entidades no vistas y su combinación con la regla. Medido en la F0 (sección 0, punto 11): ventaja clara en entidades no vistas (ROC-AUC +0,208 [+0,084, +0,300]) y, en el top-k, solo en el 1 % más alto frente a la regla suavizada. |
+| **La ventaja del modelo limpio sobre la regla por entidad es modesta** (ROC-AUC +0,037 [+0,011, +0,069]; PR-AUC +0,056 [+0,003, +0,113]) y depende de 3 features que usan `fecha_de_inicio_del_contrato`. La F1 la dejó como "segura con limitación": no ve cambios anteriores a la primera modificación. | Ablación explícita de las dos features en J3, global y dentro de entidad; medir el desempeño en entidades no vistas y la precisión en los primeros *k*; etiqueta mejorada, muestra del 10 % y ajuste de hiperparámetros en J3. Si al final no gana con claridad, se reporta con honestidad y se evalúa el valor del modelo en entidades no vistas y su combinación con la regla. Medido en la F0 (sección 0, punto 11): ventaja clara en entidades no vistas (ROC-AUC +0,208 [+0,084, +0,300]) y, en el top-k, solo en el 1 % más alto frente a la regla suavizada. |
 | Entidades no vistas | `TargetEncoder` suavizado; IC por entidad; aviso en la app |
-| Deriva de 2025 | Test aparte; riesgo en percentil; G3 la usa como alarma |
+| Deriva de 2025 | Test aparte; riesgo en percentil; G3 la usa como alarma. La F1 mostró que el salto de `y_dias` en 2025 es un efecto de registro (sección 0, punto 12) |
 | Diferencias entre entrenamiento y app | Una sola `construir_features`; prueba de dtypes y paridad con 20 contratos |
 | Modelo real tarde para el video | La app ya funciona con el dummy desde el lun 26; el cambio es un archivo |
 | Repo público | Nunca datos, tokens ni PII; `.env` y secrets en `.gitignore`; la revisión de PR lo verifica |
@@ -593,7 +696,7 @@ Los límites son de memoria y **[SUPUESTO]**; Geronimo los confirma con la docum
 | 8 | Repo público: github.com/kepabonsaeafit/fundamentos-aa-2026 |
 | 9 | Consulta por entidad, no supervisado, columnas mutables, 20 % y SemVer: [EXTRA] |
 | 10 | Commit aparte con `docs/`; `.gitignore` dentro de `final-project/`; rama base `master` (se corrige en las reglas) |
-| 11 | PII ampliada: `codigo_proveedor`, `nombre_del_adjudicador`, `nombre_del_proveedor`, `nit_del_proveedor_adjudicado`, `codigoproveedor`, `autor_version` |
+| 11 | PII ampliada: `codigo_proveedor`, `nombre_del_adjudicador`, `nombre_del_proveedor`, `nit_del_proveedor_adjudicado`, `codigoproveedor`, `autor_version`. **F1 (23-oct):** se agregan `sustituto_version` (puede ser un ID de usuario; no se confirmó qué es) y `proposito_modificacion` (texto libre que a veces trae nombres de personas). Falta reflejarlo en `src/config.py` (F3) |
 
 **Cambios a las reglas que propone este plan** (los hace Kevin en el PR de F0, con el acuerdo del equipo):
 - El App Token va en `.env` y en los secrets.
@@ -610,7 +713,7 @@ Los límites son de memoria y **[SUPUESTO]**; Geronimo los confirma con la docum
 | Jue 22 | `pytest tests/test_contratos.py` pasa con la base v0 en las tres laptops |
 | Vie 23 | SHAP muestra 3-5 factores legibles con el dummy y la aditividad cumple (error máximo < 1e-3) |
 | Sáb 24 | J1 reproduce las cifras de la exploración con la base v0 |
-| Dom 25 | `calidad.py` sin errores con la base v1 |
+| Lun 26 (12:00) | `calidad.py` sin errores con la base v1 |
 | Jue 29 | El artefacto v1 pasa `cargar_modelo` y la app desplegada lo usa |
 | Vie 30 | `jupyter nbconvert --execute model_development.ipynb` termina sin errores en ≤ 20 min |
 | Sáb 31 | Revisión final de Kevin: requisitos 3.1-3.9 cubiertos según el mapa de la sección 1 |

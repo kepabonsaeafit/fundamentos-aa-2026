@@ -19,18 +19,21 @@ from .uniones import elegir_proceso, unir_contrato_proceso
 BASE_VERSION = "v0"
 FECHA_CORTE_V0 = pd.Timestamp("2026-10-14")   # dia en que se descargo la muestra de la exploracion
 DIAS_MADUREZ = 60                             # la prorroga se firma antes del vencimiento; 60 dias de margen [SUPUESTO legal]
+DIAS_RESPALDO_SIN_DURACION = 365   # si la duracion planeada es 0 o falta, el plazo es desconocido: madura si la firma tiene mas de 365 dias al corte
 
 LLAVES = ["id_contrato", "proceso_de_compra"]
 MOMENTO = ["fecha_de_firma", "anio_firma"]
 ENTIDAD = ["nit_entidad", "nombre_entidad"]
 ETIQUETAS = ["y", "y_dias", "y_modif"]
 EVAL = ["eval_dur_planeada_dias", "eval_fin_planeado", "eval_madura", "eval_en_procesos"]
+COLUMNAS_PESOS = ["peso_mes", "N_mes", "n_mes"]   # solo en la base v1 (src/construir_v1.py), al final; no son features
 
 _ENTRADAS_EXTRA = [c for c in F.ENTRADAS if c not in LLAVES + MOMENTO + ENTIDAD]
 COLUMNAS_BASE = LLAVES + MOMENTO + ENTIDAD + _ENTRADAS_EXTRA + ETIQUETAS + EVAL
 
 # Tipo de cada columna de entrada: fecha, numero o texto
 _FECHAS = ["fecha_de_firma", "fecha_de_inicio_del_contrato", "p_fecha_de_publicacion_del"]
+_FECHAS_AL_DIA = ["fecha_de_firma", "fecha_de_inicio_del_contrato"]  # Contratos trae hora desde el 26-oct
 _NUMEROS = ["valor_de_pago_adelantado", "p_precio_base", "p_duracion", "p_numero_de_lotes", "p_proveedores_invitados",
             "p_proveedores_con_invitacion", "p_proveedores_que_manifestaron", "p_respuestas_al_procedimiento",
             "p_respuestas_externas", "p_conteo_de_respuestas_a_ofertas", "p_proveedores_unicos_con"]
@@ -42,7 +45,7 @@ def tipar_entradas(df):
     for c in F.ENTRADAS:
         s = df[c] if c in df else pd.Series(np.nan, index=df.index)
         if c in _FECHAS:
-            out[c] = F._a_fecha(s)
+            out[c] = F._a_dia(s) if c in _FECHAS_AL_DIA else F._a_fecha(s)
         elif c in _NUMEROS:
             out[c] = F._a_numero(s).astype("float64")
         else:
@@ -86,7 +89,10 @@ def construir_base(contratos, procesos, fecha_corte, nombres=None):
     fin = x["fecha_de_inicio_del_contrato"].fillna(firma) + pd.to_timedelta(dur.clip(0, 36500), unit="D")
     base["eval_dur_planeada_dias"] = dur.astype("float32")
     base["eval_fin_planeado"] = fin
-    base["eval_madura"] = ((fin + pd.Timedelta(days=DIAS_MADUREZ)) <= fecha_corte).fillna(False).astype(bool)
+    dur_conocida = dur > 0   # 0 y NaN: plazo desconocido (5,2 % con duracion 0 y 0,26 % sin duracion en v0)
+    madura_plazo = (fin + pd.Timedelta(days=DIAS_MADUREZ)) <= fecha_corte
+    madura_respaldo = (firma + pd.Timedelta(days=DIAS_RESPALDO_SIN_DURACION)) <= fecha_corte
+    base["eval_madura"] = madura_plazo.where(dur_conocida, madura_respaldo).fillna(False).astype(bool)
     base["eval_en_procesos"] = d["p_id_del_portafolio"].notna().astype(bool)
 
     base = base[firma.dt.year.between(config.ANIO_INICIO, config.ANIO_DERIVA)]
@@ -97,11 +103,19 @@ def construir_base(contratos, procesos, fecha_corte, nombres=None):
 def validar_esquema(base):
     """Falla con un mensaje claro si la base no cumple el contrato 2a. Devuelve la misma base."""
     problemas = []
-    if list(base.columns) != COLUMNAS_BASE:
-        faltan = [c for c in COLUMNAS_BASE if c not in base]
-        sobran = [c for c in base.columns if c not in COLUMNAS_BASE]
+    con_pesos = list(base.columns[len(COLUMNAS_BASE):]) == COLUMNAS_PESOS      # la v1 trae las tres columnas de pesos al final
+    esperadas = COLUMNAS_BASE + (COLUMNAS_PESOS if con_pesos else [])
+    if list(base.columns) != esperadas:
+        faltan = [c for c in esperadas if c not in base]
+        sobran = [c for c in base.columns if c not in esperadas]
         problemas.append(f"columnas distintas al esquema (faltan {faltan}, sobran {sobran}) o en otro orden")
     else:
+        if con_pesos:
+            for c, t in {"peso_mes": "float64", "N_mes": "float64", "n_mes": "int32"}.items():
+                if str(base[c].dtype) != t:
+                    problemas.append(f"{c} debe ser {t}, es {base[c].dtype}")
+            if not ((base["peso_mes"] > 0) & np.isfinite(base["peso_mes"])).all():
+                problemas.append("peso_mes debe ser positivo y finito")
         if not base["id_contrato"].is_unique:
             problemas.append("id_contrato no es unico")
         for c in _FECHAS + ["eval_fin_planeado"]:
@@ -164,7 +178,7 @@ def construir_base_v0(origen=None, destino=None):
         "origen": "muestra de la exploracion (24.000 contratos por anio de firma), no es la muestra del 10 % de la v1",
         "etiqueta": "y = y_dias = dias_adicionados > 0; y_modif = NA (se llena en la v1 con Modificaciones)",
         "madurez": f"eval_madura: fin planeado (inicio o firma + duracion del proceso) + {DIAS_MADUREZ} dias <= fecha de corte; "
-                   "si falta la duracion del proceso, False",
+                   "si la duracion planeada es 0 o falta, madura si fecha_de_firma + 365 dias <= fecha de corte",
         "anios": [int(base["anio_firma"].min()), int(base["anio_firma"].max())],
         "filas": int(len(base)),
         "por_anio": {int(a): {"filas": int(r.filas), "tasa_y": round(float(r.tasa_y), 4), "madura": round(float(r.madura), 4)}
