@@ -108,21 +108,142 @@
     "conclusion": "Agregar `el_contrato_puede_ser_prorrogado` al HGB final cambia el PR-AUC 2024 en -0.0010 y el ROC-AUC en +0.0005 (dentro del ruido entre folds del modelo). Confirma la decision de dejarla fuera de FEATURES: no aporta senal util y es sospechosa de editarse despues de la firma."
   },
   "fuga_montos": {
-    "reconstruido_con_la_base_v1": false,
-    "motivo": "los 6 montos son fuga confirmada y no estan en la base v1 (quedan solo en data/raw/ para el EDA de fuga, LISTA_FUGA 'Solo EDA'). El crudo con esas columnas lo tiene Kevin (F2).",
-    "montos_presentes_en_la_base_v1": [],
-    "montos_que_faltan": [
-      "presupuesto_general_de_la_nacion_pgn",
-      "sistema_general_de_participaciones",
-      "sistema_general_de_regal_as",
-      "recursos_propios_alcald_as_gobernaciones_y_resguardos_ind_genas_",
-      "recursos_de_credito",
-      "recursos_propios"
-    ],
-    "archivos_en_data_raw": [],
-    "contraste_verificado_F0": {
+    "reconstruido_con_la_base_v1": true,
+    "etiqueta": "v1, base v1_A, y",
+    "protocolo": "train 2019-2023 maduros, test 2024 maduros, IC 95 % bootstrap por entidad",
+    "fuente_datos_fuga": {
+      "encontrado": true,
+      "fuente": "data/raw/f2/contratos",
+      "ruta": "data/raw/f2/contratos",
+      "archivos": 84,
+      "filas_leidas": 452515,
+      "ids_duplicados": 21,
+      "filas_duplicadas_eliminadas": 21,
+      "duplicados_exactos": true,
+      "contratos_base": 452494,
+      "sin_match_en_crudo": 0,
+      "columnas_leidas": [
+        "id_contrato",
+        "presupuesto_general_de_la_nacion_pgn",
+        "sistema_general_de_participaciones",
+        "sistema_general_de_regal_as",
+        "recursos_propios_alcald_as_gobernaciones_y_resguardos_ind_genas_",
+        "recursos_de_credito",
+        "recursos_propios",
+        "estado_contrato",
+        "valor_del_contrato",
+        "fecha_de_fin_del_contrato",
+        "fecha_de_firma"
+      ]
+    },
+    "n_train": 261249,
+    "n_test": 88088,
+    "tasa_base_test": 0.2472,
+    "m_regla": 10.0,
+    "n_boot": 200,
+    "tabla": {
+      "regla_entidad": {
+        "pr_auc": {
+          "modelo": "regla_entidad",
+          "metrica": "pr_auc",
+          "valor": 0.4701700598679968,
+          "ic_inf": 0.3549993088866926,
+          "ic_sup": 0.5622223056961939,
+          "dif": 0.0,
+          "dif_ic_inf": 0.0,
+          "dif_ic_sup": 0.0
+        },
+        "roc_auc": {
+          "modelo": "regla_entidad",
+          "metrica": "roc_auc",
+          "valor": 0.6818049591995474,
+          "ic_inf": 0.6283797749170551,
+          "ic_sup": 0.7255995558902348,
+          "dif": 0.0,
+          "dif_ic_inf": 0.0,
+          "dif_ic_sup": 0.0
+        }
+      },
+      "final_limpio": {
+        "pr_auc": {
+          "modelo": "final_limpio",
+          "metrica": "pr_auc",
+          "valor": 0.5838617620290886,
+          "ic_inf": 0.48833868419931054,
+          "ic_sup": 0.659148830590454,
+          "dif": 0.11369170216109176,
+          "dif_ic_inf": 0.08241198923136336,
+          "dif_ic_sup": 0.15806350114734644
+        },
+        "roc_auc": {
+          "modelo": "final_limpio",
+          "metrica": "roc_auc",
+          "valor": 0.7805751517011456,
+          "ic_inf": 0.7517896941893336,
+          "ic_sup": 0.807297110914955,
+          "dif": 0.09877019250159813,
+          "dif_ic_inf": 0.06671926387587278,
+          "dif_ic_sup": 0.13028436090838866
+        }
+      },
+      "final_con_6_montos": {
+        "pr_auc": {
+          "modelo": "final_con_6_montos",
+          "metrica": "pr_auc",
+          "valor": 0.8510254868733539,
+          "ic_inf": 0.8101895202627408,
+          "ic_sup": 0.8840211046764227,
+          "dif": 0.3808554270053571,
+          "dif_ic_inf": 0.3176622985000727,
+          "dif_ic_sup": 0.4738107058639733
+        },
+        "roc_auc": {
+          "modelo": "final_con_6_montos",
+          "metrica": "roc_auc",
+          "valor": 0.9167266008003689,
+          "ic_inf": 0.9008963283083449,
+          "ic_sup": 0.9288121989911263,
+          "dif": 0.23492164160082152,
+          "dif_ic_inf": 0.20005023013981998,
+          "dif_ic_sup": 0.27518281801539973
+        }
+      },
+      "final_con_fuga_evidente": {
+        "pr_auc": {
+          "modelo": "final_con_fuga_evidente",
+          "metrica": "pr_auc",
+          "valor": 0.9670225909764096,
+          "ic_inf": 0.9565126596130116,
+          "ic_sup": 0.9759198749117238,
+          "dif": 0.4968525311084128,
+          "dif_ic_inf": 0.4115030024644327,
+          "dif_ic_sup": 0.6035842927821412
+        },
+        "roc_auc": {
+          "modelo": "final_con_fuga_evidente",
+          "metrica": "roc_auc",
+          "valor": 0.9844499426971491,
+          "ic_inf": 0.9804958312684638,
+          "ic_sup": 0.9875361214994376,
+          "dif": 0.3026449834976017,
+          "dif_ic_inf": 0.2615595018700774,
+          "dif_ic_sup": 0.35351515354790386
+        }
+      }
+    },
+    "subida_al_agregar_montos": {
+      "pr_auc": 0.2672,
+      "roc_auc": 0.1362
+    },
+    "subida_al_agregar_fuga_evidente": {
+      "pr_auc": 0.3832,
+      "roc_auc": 0.2039
+    },
+    "f0_referencia_historica": {
+      "etiqueta": "F0, base v0, y_dias",
+      "referencia_historica": true,
       "fuente": "PLAN.md seccion 0, puntos 9 y 10; muestra de la exploracion (base v0, y_dias), no la base v1",
-      "estado": "[VERIFICADO en la F0; NO reconstruido aqui porque los 6 montos son fuga y no estan en la base v1]",
+      "estado": "[REFERENCIA HISTORICA: F0, base v0, y_dias; no se usa como resultado de la v1]",
       "hgb_limpio_39_features": {
         "roc_auc": 0.751,
         "pr_auc": 0.333
@@ -145,5 +266,5 @@
       "por_que": "junto con el precio base, los 6 montos delatan las adiciones de valor: su suma es igual a valor_del_contrato en el 80,6 % de los contratos (cociente sobre el precio base 1,26 con adicion frente a 1,00 sin adicion). El 0,807/0,429 se parece a la variante C de la exploracion (0,809/0,436), probablemente inflada por lo mismo."
     }
   },
-  "segundos": 67
+  "segundos": 197
 }
