@@ -20,6 +20,7 @@ Cifras en resultados/j3_resumen.md.
 
 **Notas.**
 - Variante C sin `visualizaciones_del`: no aplica, la base v1 no trae esa columna (fuga) y `FEATURES` ya incluye las del proceso. [VERIFICADO en `src/features.py`]
-- `el_contrato_puede_ser_prorrogado` (excluida) no entró a la ablación. [NO EVALUADO]
+- `el_contrato_puede_ser_prorrogado` (excluida): ablación hecha. Agregarla al HGB final mueve el PR-AUC 2024 en −0,0010 y el ROC-AUC en +0,0005 (dentro del ruido entre folds); confirma dejarla fuera de `FEATURES`. [VERIFICADO: `src/evaluar_j3_extra.py`, `resultados/j3_extra_resumen.md`]
+- Contraste "con fuga" de 3.6 (6 montos): no se reconstruye con la base v1 porque esos montos son fuga confirmada y no están en la base (solo en `data/raw/` para el EDA de fuga; el crudo lo tiene Kevin). Se cita el contraste verificado de la F0: al meterle los 6 montos al HGB limpio, ROC-AUC 0,751 → 0,807 y PR-AUC 0,333 → 0,429. [VERIFICADO en la F0; `src/evaluar_j3_extra.py` deja el camino listo si el crudo aparece]
 - Umbrales de riesgo (p70 y p90 del puntaje 2024) son provisionales: se cuadran con Geronimo.
 - Las tasas de train (0,289) y test 2024 (0,247) difieren: ROC-AUC no cambia por eso, pero el PR-AUC y la probabilidad cruda sí; por eso la app muestra percentil y nivel.
