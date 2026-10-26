@@ -592,28 +592,34 @@ def graficar_tasa_por_anio(tabla, col_anio="anio_firma", titulo="Tasa de y por a
 
 
 def tasa_entidad_historica(df, col_entidad="nit_entidad", col_y="y", col_anio="anio_firma",
-                           anio_objetivo=2024, n_grupos=5):
+                           anio_objetivo=2024):
     """Tasa historica de la entidad con anios anteriores y tasa observada en el anio objetivo.
 
     Para cada contrato del anio objetivo, la tasa historica de su entidad se calcula solo con
     contratos de esa entidad en anios estrictamente anteriores a `anio_objetivo` (por ejemplo,
     2019-2023 para 2024). No incluye contratos del mismo anio ni el propio contrato; es una
     ventana anual, no un expanding window dentro del anio. Las entidades sin historia van a un
-    grupo aparte. Los grupos se arman sobre el rank de la tasa (method="first") para que los
-    empates no colapsen los quintiles.
+    grupo aparte y las de tasa historica 0 a otro; las de tasa > 0 se reparten en terciles sobre
+    el rank de la tasa (method="first") para que los empates no colapsen los grupos.
     """
     datos = df[df[col_y].notna()]
     hist = (datos[datos[col_anio] < anio_objetivo]
             .groupby(col_entidad)[col_y]
             .agg(positivos="sum", n="size"))
     hist["tasa"] = hist["positivos"] / hist["n"]
-    etiquetas = [f"Q{i}" for i in range(1, n_grupos + 1)]
-    try:
-        hist["grupo"] = pd.qcut(hist["tasa"].rank(method="first"), q=n_grupos, labels=etiquetas)
-    except ValueError:
-        etiquetas = ["Unico"]
-        hist["grupo"] = "Unico"
-    orden = etiquetas + ["Sin historia"]
+    etiquetas = ["T1", "T2", "T3"]
+    hist["grupo"] = "Tasa 0"
+    con_tasa = hist["tasa"] > 0
+    if con_tasa.any():
+        try:
+            hist.loc[con_tasa, "grupo"] = pd.qcut(hist.loc[con_tasa, "tasa"].rank(method="first"),
+                                                  q=3, labels=etiquetas)
+        except ValueError:
+            etiquetas = ["Unico"]
+            hist.loc[con_tasa, "grupo"] = "Unico"
+    else:
+        etiquetas = []
+    orden = ["Sin historia", "Tasa 0"] + etiquetas
     objetivo = datos[datos[col_anio] == anio_objetivo].copy()
     objetivo["grupo_hist"] = objetivo[col_entidad].map(hist["grupo"])
     objetivo["grupo_hist"] = objetivo["grupo_hist"].astype("object").fillna("Sin historia")
