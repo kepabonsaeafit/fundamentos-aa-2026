@@ -34,7 +34,8 @@ PERCENTIL_MEDIO, PERCENTIL_ALTO = 70, 90
 
 def construir_pipeline(excluir=()):
     """Pipeline del modelo v1 sin ajustar. Recibe la salida de construir_features."""
-    hgb = HistGradientBoostingClassifier(early_stopping=False, random_state=config.SEED, **HIPERPARAMETROS_V1)
+    hgb = HistGradientBoostingClassifier(early_stopping=False, random_state=config.SEED, categorical_features=None,
+                                         **HIPERPARAMETROS_V1)
     return P.pipeline(hgb, FAMILIA, excluir)
 
 
