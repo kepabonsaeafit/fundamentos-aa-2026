@@ -39,5 +39,7 @@ PII_EXPLORACION = {
 PII_AMPLIADA = {
     "codigo_proveedor", "nombre_del_adjudicador", "nombre_del_proveedor",
     "nit_del_proveedor_adjudicado", "codigoproveedor", "autor_version",
+    # F1 (docs/LISTA_FUGA.md, seccion 7): puede ser un ID de usuario / el texto a veces trae nombres de personas
+    "sustituto_version", "proposito_modificacion",
 }
 PII = PII_EXPLORACION | PII_AMPLIADA
