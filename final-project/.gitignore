@@ -4,3 +4,6 @@ data/
 # Credenciales y secretos: el repositorio es publico
 .env
 **/.streamlit/secrets.toml
+
+# Carpeta local de agentes (reportes y scripts de trabajo, no se versiona)
+.agents/
