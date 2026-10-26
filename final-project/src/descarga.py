@@ -27,8 +27,10 @@ Reanudacion (estado en disco, en --destino):
 
 Chequeo de completitud (completitud.json en --destino, se escribe al final de cada corrida, tambien si se corta):
 - Contratos: filas por mes contra un count(*) del servidor del mismo filtro, pedido al terminar Contratos;
-  id_contrato unico; filas dentro de su mes y digito; con anios completos, filas por anio x digito contra el conteo
-  del paso 4 y contra el 10 % de la poblacion (+-2 %).
+  id_contrato sin repetidos, salvo copias exactas (iguales en todas las columnas) dentro de una misma unidad: esas se
+  aceptan, se cuentan y se registran con su unidad y su id; fallan las filas con el mismo id y columnas distintas y
+  los ids que aparecen en dos unidades; filas dentro de su mes y digito; con anios completos, filas por anio x digito
+  contra el conteo del paso 4 y contra el 10 % de la poblacion (+-2 %).
 - Procesos y Modificaciones: todos los lotes del plan hechos.
 - `ok` es true solo si todo eso se cumple; `faltantes` lista las unidades no hechas de cada conjunto.
 
@@ -122,6 +124,7 @@ POBLACION_PASO4 = {2019: 142090, 2020: 356623, 2021: 560441, 2022: 707765, 2023:
 TOL_MES = (5, 0.001)
 TOL_PASO4 = (10, 0.001)
 TOL_POBLACION = 0.02
+DUPLICADOS_ACEPTADOS = "aceptados: copias exactas dentro de la unidad"   # marca en el log y en completitud.json
 
 log = logging.getLogger("descarga")
 
@@ -469,9 +472,43 @@ class Descarga:
         self.volcar_peticiones("contratos", "conteo_servidor")
         return {d["mes"][:7]: int(d["n"]) for d in datos}
 
+    def clasificar_duplicados(self, unidades, ids):
+        """Clasifica los id_contrato repetidos y cuenta filas sobrantes (las del id menos la primera). exactos: ids
+        cuyas filas, todas en una misma unidad, son iguales en todas las columnas; no_exactos: ids en una sola unidad
+        con alguna columna distinta entre sus filas; entre_unidades: ids que estan en mas de una unidad.
+        total = exactos + no_exactos + entre_unidades. detalle: un registro por id con copias exactas."""
+        todos = pd.concat(ids, ignore_index=True)
+        total = int(todos.duplicated().sum())
+        if total == 0:
+            return {"total": 0, "exactos": 0, "no_exactos": 0, "entre_unidades": 0, "detalle": []}
+        repetidos = set(todos[todos.duplicated(keep=False)])
+        partes = []
+        for u, s in zip(unidades, ids):
+            if s.isin(repetidos).any():
+                df = pd.read_parquet(u["ruta"])
+                partes.append(df[df["id_contrato"].isin(repetidos)].assign(_unidad=u["clave"]))
+        rep = pd.concat(partes, ignore_index=True)
+        columnas = [c for c in rep.columns if c != "_unidad"]
+        n_unidades = rep.groupby("id_contrato")["_unidad"].nunique()
+        en_varias = set(n_unidades[n_unidades > 1].index)
+        entre = rep[rep["id_contrato"].isin(en_varias)]
+        dentro = rep[~rep["id_contrato"].isin(en_varias)]
+        filas = dentro.groupby("id_contrato").size()
+        distintas = dentro.drop_duplicates(subset=columnas).groupby("id_contrato").size()
+        exactos, no_exactos = filas[distintas == 1], filas[distintas > 1]
+        unidad = dentro.groupby("id_contrato")["_unidad"].first()
+        detalle = [{"id_contrato": i, "unidad": unidad[i], "filas": int(k), "copias_exactas_sobrantes": int(k) - 1,
+                    "estado": DUPLICADOS_ACEPTADOS} for i, k in exactos.items()]
+        return {"total": total, "exactos": int(exactos.sum()) - len(exactos),
+                "no_exactos": int(no_exactos.sum()) - len(no_exactos),
+                "entre_unidades": len(entre) - len(en_varias), "detalle": detalle}
+
     def chequear_contratos(self, unidades):
-        """False si un mes no cuadra con el count(*) del servidor, si hay id_contrato repetidos o filas fuera de su
-        unidad, o si un anio completo no cuadra con el conteo del paso 4 o con el 10 % de la poblacion."""
+        """False si un mes no cuadra con el count(*) del servidor, si hay id_contrato repetidos que no son copias
+        exactas dentro de una misma unidad (filas con el mismo id y alguna columna distinta, o un id en dos unidades),
+        si hay filas fuera de su unidad, o si un anio completo no cuadra con el conteo del paso 4 o con el 10 % de la
+        poblacion. Las copias exactas dentro de una unidad no hacen fallar el chequeo: se cuentan y se registran en el
+        log y en completitud.json, con su unidad y su id (F3 las deduplica)."""
         previo = self.estado.datos["chequeos"].get("contratos")
         if previo and previo["ok"]:
             log.info(f"[completitud] Contratos ya verificado el {previo['fecha']} (sin cambios desde entonces): OK")
@@ -489,7 +526,7 @@ class Descarga:
             tol = tolerancia(esperado, TOL_MES)
             por_mes.append({"mes": u["mes"], "anio": u["anio"], "servidor": esperado, "descargado": len(df),
                             "diferencia": len(df) - esperado, "tolerancia": tol, "ok": abs(len(df) - esperado) <= tol})
-        duplicados = int(pd.concat(ids, ignore_index=True).duplicated().sum())
+        dup = self.clasificar_duplicados(unidades, ids)
         por_anio = []
         for anio in sorted({m["anio"] for m in por_mes}):
             del_anio = [m for m in por_mes if m["anio"] == anio]
@@ -506,9 +543,12 @@ class Descarga:
                 fila.update(diez_por_ciento=POBLACION_PASO4[anio] / 10, desvio_rel=round(desvio, 5),
                             ok_poblacion=abs(desvio) <= TOL_POBLACION)
             por_anio.append(fila)
-        ok = (all(m["ok"] for m in por_mes) and duplicados == 0 and fuera == 0
+        ok = (all(m["ok"] for m in por_mes) and dup["no_exactos"] == 0 and dup["entre_unidades"] == 0 and fuera == 0
               and all(f.get("ok_paso4", True) and f.get("ok_poblacion", True) for f in por_anio))
-        resultado = {"fecha": ahora(), "ok": ok, "duplicados_id_contrato": duplicados, "filas_fuera_de_unidad": fuera,
+        resultado = {"fecha": ahora(), "ok": ok, "duplicados_id_contrato": dup["total"],
+                     "duplicados_exactos_id_contrato": dup["exactos"], "duplicados_no_exactos": dup["no_exactos"],
+                     "duplicados_entre_unidades": dup["entre_unidades"], "duplicados_exactos_detalle": dup["detalle"],
+                     "filas_fuera_de_unidad": fuera,
                      "tolerancias": {"mes": TOL_MES, "paso4": TOL_PASO4, "poblacion": TOL_POBLACION},
                      "por_anio_digito": por_anio, "por_mes": por_mes}
         self.estado.datos["chequeos"]["contratos"] = resultado
@@ -516,8 +556,19 @@ class Descarga:
         malos = [m for m in por_mes if not m["ok"]]
         log.info(f"[completitud] Contratos: {sum(m['descargado'] for m in por_mes)} filas descargadas frente a "
                  f"{sum(m['servidor'] for m in por_mes)} del count(*) del servidor en {len(por_mes)} meses; "
-                 f"meses fuera de tolerancia {len(malos)}; id_contrato repetidos {duplicados}; filas fuera de su "
-                 f"unidad {fuera}")
+                 f"meses fuera de tolerancia {len(malos)}; filas sobrantes por id_contrato repetido {dup['total']} "
+                 f"(copias exactas dentro de su unidad {dup['exactos']}, filas distintas con el mismo id "
+                 f"{dup['no_exactos']}, ids en mas de una unidad {dup['entre_unidades']}); filas fuera de su unidad "
+                 f"{fuera}")
+        if dup["no_exactos"] or dup["entre_unidades"]:
+            log.error("[completitud] id_contrato repetidos NO aceptados: solo se aceptan copias exactas dentro de la "
+                      "misma unidad")
+        if dup["detalle"]:
+            log.warning(f"[completitud] duplicados {DUPLICADOS_ACEPTADOS}: {dup['exactos']} filas sobrantes en "
+                        f"{len(dup['detalle'])} id_contrato y {len({d['unidad'] for d in dup['detalle']})} unidades")
+        for d in dup["detalle"]:
+            log.warning(f"[completitud] id_contrato {d['id_contrato']} en {d['unidad']}: {d['filas']} filas, "
+                        f"{d['copias_exactas_sobrantes']} copia(s) exacta(s) sobrante(s) ({d['estado']})")
         for m in malos:
             log.error(f"[completitud] {m['mes']}: descargado {m['descargado']}, servidor {m['servidor']} "
                       f"(tolerancia {m['tolerancia']})")
