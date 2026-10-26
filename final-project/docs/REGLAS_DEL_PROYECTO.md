@@ -56,7 +56,7 @@ con datos personales.
 - Todo PR lo revisa otro integrante antes del merge (squash merge). Nadie hace merge de su propio PR sin revisión.
 - Excepción: los PRs de cimientos y documentación de Kevin (F0 y docs) se mergean con la aprobación general del equipo, sin revisión formal.
 
-**Nunca se versionan:** datos (`data/`), credenciales o tokens, ni archivos pesados generados. Antes de cada commit, verifica con `git status` que no se cuele nada de eso.
+**Nunca se versionan:** datos (`data/`), credenciales o tokens, ni archivos pesados generados. Antes de cada commit, verifica con `git status` que no se cuele nada de eso. **Excepción:** `app/respaldo_demo.parquet`: unos 40 contratos públicos, solo columnas de entrada, sin datos personales, para que la app desplegada responda si la API de datos.gov.co cae. Aprobado por Kevin el 26-oct.
 
 ## Entorno
 
