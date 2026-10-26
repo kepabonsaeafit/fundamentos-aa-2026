@@ -1,0 +1,23 @@
+{
+  "n_evaluacion": 80652,
+  "trimestres": [
+    "2025Q1",
+    "2025Q2",
+    "2025Q3"
+  ],
+  "pr_auc_campeon": 0.555809027483302,
+  "pr_auc_retador": 0.5452164849876513,
+  "roc_auc_campeon": 0.7528065738573981,
+  "roc_auc_retador": 0.7529201028857623,
+  "delta_pr_auc": {
+    "delta": -0.01059254249565067,
+    "ic_inf": -0.028927897414593635,
+    "ic_sup": 0.014840209614279783
+  },
+  "delta_roc_auc": {
+    "delta": 0.00011352902836414547,
+    "ic_inf": -0.0060201368243314205,
+    "ic_sup": 0.006178809539772215
+  },
+  "decision": "no promover: sin evidencia suficiente de mejora"
+}
