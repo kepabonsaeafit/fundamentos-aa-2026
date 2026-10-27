@@ -32,7 +32,7 @@
 | Tras 3 consultas con su gráfico (**versión desplegada**) | **290 MB** |
 | Si además se cargara la base completa como respaldo (452.494 contratos) | 1.019 MB |
 
-Por eso el respaldo local **no carga la base**: busca el contrato por lotes de 20.000 filas en el parquet (peor caso 0,22 s) y la nube, que no tiene `data/`, no lo usa.
+Por eso el respaldo local **no carga la base**: busca el contrato por lotes de 20.000 filas en el parquet (peor caso 0,22 s) y la nube, que no tiene `data/`, no lo usa: responde desde un archivo de demostración de 40 contratos (sección 7).
 
 ## 2. Arquitectura y flujo
 
@@ -90,7 +90,7 @@ Copiar `modelo_prorroga_v1.joblib` y su `.json` a `models/` y hacer `push`: la a
 
 ## 6. Plan C: correr en local (sustentación)
 
-Desde `final-project/`, con el entorno virtual del proyecto activo y la base v1 en `data/processed/`:
+Desde `final-project/`, con el entorno virtual del proyecto activo y la base v1 en `data/processed/v1_A/` (`config.BASE_V1`; en `data/processed/` suele estar la base vieja v0):
 
 ```
 streamlit run app/app.py
@@ -100,7 +100,7 @@ Si datos.gov.co no responde, la app responde desde la copia local para los contr
 
 ## 7. Decisiones pendientes para el equipo
 
-- **Respaldo en la nube.** La nube no tiene `data/`, así que si la API cae durante la demo desplegada la app solo muestra un error claro. Opción: versionar `app/respaldo_demo.parquet` con unos 30 contratos de demostración (datos públicos sin datos personales, unos pocos KB). La app ya lo usa si existe. Las reglas dicen que los datos no se versionan, así que lo decide Kevin. **No se creó.**
+- **Respaldo en la nube.** La nube no tiene `data/`, así que si la API cae o la rechaza durante la demo desplegada la app responde desde `app/respaldo_demo.parquet`: 40 contratos de la base v1 (los 3 ejemplos de la pantalla, 35 al azar con semilla 42, 5 por año de firma de 2019 a 2025, y 2 sin proceso asociado), solo con las columnas de `COLS_RESPALDO` y 39 KB. Son datos públicos y no incluyen columnas de datos personales ni de fuga; una prueba lo verifica. Un contrato que no esté en el archivo da el mensaje claro de siempre. **Las reglas dicen que los datos no se versionan**: el archivo se agregó a pedido de Gerónimo y queda para que Kevin lo apruebe o lo retire en la revisión del PR; sin él, la app funciona igual y solo pierde este respaldo.
 - **Aviso de "entidad sin historial".** Está implementado, pero se activa solo cuando el `.json` del modelo trae la lista `entidades_vistas` (los NIT con contratos en el entrenamiento). El dummy no la trae. Hay que pedirle a Jose que el modelo v1 la guarde.
 - **Despertar la app.** Si pasan 12 horas sin visitas se duerme. Entrar a la URL antes del video, del ensayo del lunes 2 y de la sustentación del martes 3.
 
@@ -109,7 +109,7 @@ Si datos.gov.co no responde, la app responde desde la copia local para los contr
 | Riesgo | Mitigación |
 |---|---|
 | La app está dormida en la demo | Despertarla antes; plan C local |
-| La API de datos.gov.co no responde | Mensaje claro; respaldo local en el plan C; caché de 1 hora por contrato |
+| La API de datos.gov.co no responde o rechaza la consulta (error 400) | Mensaje claro y sin traceback; respaldo local en el plan C o archivo de demostración en la nube; caché de 1 hora por contrato |
 | Versión de Python distinta a la probada | Revisar el log de la primera construcción; las versiones de las librerías están fijas |
 | Los límites de la plataforma cambian | La app usa unos 290 MB; el mínimo documentado es 690 MB |
 | Se filtra un token | Va solo en los secretos de la plataforma o en `.env`, ambos fuera del repositorio |
