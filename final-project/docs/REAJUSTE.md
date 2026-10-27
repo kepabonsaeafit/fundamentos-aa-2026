@@ -86,7 +86,7 @@ Modelo congelado (entrenado con 2019-2023) recorrido mes a mes y trimestre a tri
 ## 7. Cómo reproducirlo
 
 ```
-python -m src.monitoreo        # desde final-project/, con la base v1 en data/processed/ (unos 50 s)
+python -m src.monitoreo        # desde final-project/, con la base v1 en data/processed/v1_A/ (unos 50 s)
 pytest tests/test_monitoreo.py
 ```
 
