@@ -50,7 +50,7 @@ def cargar_modelo_y_explicador():
 def ruta_respaldo():
     """Ruta de la copia local de contratos por si la API no responde (plan C). Puede no existir (p. ej. en la nube).
     Solo se devuelve la ruta: el servicio lee de ahi la fila del contrato pedido y no carga la base en memoria."""
-    for ruta in (config.DATA_PROCESSED / "base_contratos.parquet", Path(__file__).parent / "respaldo_demo.parquet"):
+    for ruta in (config.BASE_V1, Path(__file__).parent / "respaldo_demo.parquet"):
         if ruta.exists():
             return ruta
     return None
