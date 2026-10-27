@@ -262,7 +262,9 @@ def obtener_consulta(texto, cliente=None, respaldo=None, ttl=TTL_CACHE):
         portafolio = contratos.iloc[0].get("proceso_de_compra")
         procesos = consultar_procesos(cliente, portafolio) if isinstance(portafolio, str) and portafolio else None
         consulta = consulta_desde_filas(contratos, procesos)
-    except (Throttled, RuntimeError, requests.RequestException) as e:
+    except (Throttled, RuntimeError, requests.RequestException, ValueError) as e:
+        # ValueError: el cliente lo lanza cuando la API responde 400 (consulta rechazada). IdInvalido (otro ValueError)
+        # sale antes del try, asi que no pasa por aqui.
         fila = _fila_de_respaldo(respaldo, id_contrato)
         if fila is not None:
             return _consulta_de_fila(fila, id_contrato)

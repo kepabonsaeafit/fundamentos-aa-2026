@@ -166,6 +166,22 @@ def test_si_la_api_falla_responde_desde_el_respaldo():
         A.obtener_consulta("CO1.PCCNTR.999", cliente=ClienteFalso(error=RuntimeError("sin red")), respaldo=respaldo)
 
 
+def test_un_error_400_de_la_api_cae_al_respaldo_o_a_un_mensaje_claro_sin_traceback():
+    # el cliente lanza ValueError cuando la API responde 400 (consulta rechazada)
+    error_400 = ValueError("400 en /resource/jbjy-vk9h.json: query.soql.no-such-column")
+    unido = _contrato().assign(**{k: v for k, v in _procesos().iloc[0].add_prefix("p_").items()})
+    respaldo = unido.assign(eval_en_procesos=True)
+    r = A.obtener_consulta(ID, cliente=ClienteFalso(error=error_400), respaldo=respaldo)
+    assert r.fuente == "respaldo" and r.id_contrato == ID
+    A._CACHE.clear()
+    with pytest.raises(A.ApiNoDisponible) as e:         # sin respaldo: ApiNoDisponible, no un ValueError crudo
+        A.obtener_consulta(ID, cliente=ClienteFalso(error=error_400))
+    assert e.value.__cause__ is error_400
+    # un id mal escrito sigue siendo IdInvalido: se lanza antes de consultar y no lo captura el except
+    with pytest.raises(A.IdInvalido):
+        A.obtener_consulta("no es un contrato", cliente=ClienteFalso(error=error_400), respaldo=respaldo)
+
+
 def test_el_respaldo_por_ruta_lee_solo_la_fila_pedida(tmp_path):
     unido = _contrato().assign(**{k: v for k, v in _procesos().iloc[0].add_prefix("p_").items()})
     otro = unido.assign(id_contrato="CO1.PCCNTR.7654321")
