@@ -62,7 +62,7 @@ def comparar(x_api, x_base):
 
 
 def main(por_anio=3, semilla=config.SEED):
-    base = pd.read_parquet(config.DATA_PROCESSED / "base_contratos.parquet")
+    base = pd.read_parquet(config.BASE_V1)
     elegibles = base[base["eval_en_procesos"]]
     muestra = elegibles.groupby("anio_firma", group_keys=False).sample(n=por_anio, random_state=semilla)
     x_base = F.construir_features(muestra).set_index(muestra["id_contrato"].to_numpy())
