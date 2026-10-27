@@ -402,13 +402,13 @@ def resumen_markdown(mensual, trimestral, cr, historico=None):
 
 
 def main(n_boot=200):
-    from . import modelo_dummy
+    from . import modelo
     base = cargar_base_v1()
     # comprobacion previa: la regla de madurez reproduce la columna de la base
     assert (madura_en(base, CORTE_CENSURA) == base["eval_madura"]).all(), "madura_en no reproduce eval_madura"
     x = F.construir_features(base)
     historico = psi_historico_entre_anios(base, x)
-    mensual, trimestral, cr = simular(base, modelo_dummy.construir_pipeline, n_boot=n_boot, x=x)
+    mensual, trimestral, cr = simular(base, modelo.construir_pipeline, n_boot=n_boot, x=x)
     destino = config.RAIZ / "resultados"
     destino.mkdir(exist_ok=True)
     mensual.to_csv(destino / "monitoreo_mensual.csv", index=False)
