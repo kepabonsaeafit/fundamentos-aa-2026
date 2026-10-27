@@ -171,3 +171,31 @@ def test_el_top_peor_que_el_azar_se_marca():
     base.loc[q3, "score"] = np.where(base.loc[q3, "y"] == 1, rng.normal(-1, 0.1, q3.sum()), rng.normal(3, 0.1, q3.sum()))
     t = M.tabla_trimestral(base, base["score"].to_numpy(), corte=corte, n_boot=20).set_index("trimestre")
     assert t.loc["2025Q3", "aviso_top_peor_que_base"] and not t.loc["2025Q1", "aviso_top_peor_que_base"]
+
+
+# ---------------------------------------------------------------- base v1
+def _escribir(df, ruta):
+    df.to_parquet(ruta, index=False)
+    return ruta
+
+
+def test_el_monitoreo_se_niega_a_correr_con_la_base_v0(tmp_path):
+    v1 = pd.DataFrame({"id_contrato": ["a", "b", "c"], "y_modif": pd.array([1, 0, None], dtype="Int8")})
+    sin_columna = pd.DataFrame({"id_contrato": ["a", "b"]})                                  # esquema viejo
+    vacia = pd.DataFrame({"id_contrato": ["a", "b"], "y_modif": pd.array([None, None], dtype="Int8")})   # la v0 la deja en NA
+
+    assert len(M.cargar_base_v1(_escribir(v1, tmp_path / "v1.parquet"))) == 3                # la v1 pasa (con algunos NA)
+    for nombre, df in (("sin_columna", sin_columna), ("vacia", vacia)):
+        with pytest.raises(M.BaseNoEsV1, match="v0") as e:
+            M.cargar_base_v1(_escribir(df, tmp_path / f"{nombre}.parquet"))
+        assert "v1_A" in str(e.value)                                                         # dice donde esta la v1
+    with pytest.raises(FileNotFoundError, match="v1_A"):
+        M.cargar_base_v1(tmp_path / "no_existe.parquet")
+
+
+def test_main_lee_la_base_de_config_base_v1_y_falla_si_es_la_v0(tmp_path, monkeypatch):
+    v0 = _escribir(pd.DataFrame({"id_contrato": ["a", "b"], "y_modif": pd.array([None, None], dtype="Int8")}),
+                   tmp_path / "base_contratos.parquet")
+    monkeypatch.setattr(M.config, "BASE_V1", v0)
+    with pytest.raises(M.BaseNoEsV1, match="parece ser la v0"):
+        M.main()                       # falla al cargar, antes de entrenar nada

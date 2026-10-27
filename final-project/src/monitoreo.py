@@ -15,10 +15,11 @@ Que hace este modulo:
 Todas las reglas estan en las constantes de abajo, con su justificacion en docs/REAJUSTE.md. Los intervalos remuestrean
 ENTIDADES, no contratos: los contratos de una entidad estan correlacionados.
 
-Uso (desde final-project/, con la base v1 en data/processed/):  python -m src.monitoreo
+Uso (desde final-project/, con la base v1 en data/processed/v1_A/):  python -m src.monitoreo
 """
 import json
 import time
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -46,6 +47,40 @@ MADURACION_DIAS = 60                # eval_madura: fin planeado + 60 dias (la pr
 SIN_DURACION_DIAS = 365             # sin duracion planeada: maduro a los 365 dias de la firma
 
 METRICAS = {"roc_auc": roc_auc_score, "pr_auc": average_precision_score}
+
+
+# ---------------------------------------------------------------- base v1
+class BaseNoEsV1(RuntimeError):
+    """La base cargada no es la v1 (la simulacion y sus cifras son de la v1)."""
+
+
+def _mostrar(ruta):
+    """Ruta relativa a final-project/ si esta dentro; si no, tal cual (el mensaje de error nunca debe fallar)."""
+    try:
+        return str(Path(ruta).relative_to(config.RAIZ))
+    except ValueError:
+        return str(ruta)
+
+
+def verificar_base_v1(base, ruta=None):
+    """Falla con un mensaje claro si la base no es la v1. La v0 no tiene la etiqueta mejorada: su columna y_modif no existe
+    o esta vacia (todo NA); la v1 la trae con valores."""
+    if "y_modif" not in base.columns or not base["y_modif"].notna().any():
+        donde = f" ({ruta})" if ruta else ""
+        raise BaseNoEsV1(
+            f"La base cargada{donde} parece ser la v0: la columna y_modif no existe o esta vacia. Se esta usando la base "
+            f"vieja. La v1 esta en {_mostrar(config.BASE_V1)} (carpeta v1_A de Drive); data/processed/"
+            "base_contratos.parquet suele ser la v0.")
+    return base
+
+
+def cargar_base_v1(ruta=None):
+    """Lee config.BASE_V1 (o `ruta`) y verifica que sea la v1."""
+    ruta = Path(ruta) if ruta is not None else config.BASE_V1
+    if not ruta.exists():
+        raise FileNotFoundError(f"No existe {ruta}. La base v1 va en {_mostrar(config.BASE_V1)} "
+                                "(carpeta v1_A de Drive, ver docs/BASE_V1.md).")
+    return verificar_base_v1(pd.read_parquet(ruta), ruta)
 
 
 # ---------------------------------------------------------------- madurez
@@ -368,7 +403,7 @@ def resumen_markdown(mensual, trimestral, cr, historico=None):
 
 def main(n_boot=200):
     from . import modelo_dummy
-    base = pd.read_parquet(config.DATA_PROCESSED / "base_contratos.parquet")
+    base = cargar_base_v1()
     # comprobacion previa: la regla de madurez reproduce la columna de la base
     assert (madura_en(base, CORTE_CENSURA) == base["eval_madura"]).all(), "madura_en no reproduce eval_madura"
     x = F.construir_features(base)
