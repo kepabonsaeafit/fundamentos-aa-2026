@@ -1,0 +1,21 @@
+# Dependencias de la app desplegada (Streamlit Community Cloud la busca primero en la carpeta del archivo principal).
+# Mismas versiones fijas que final-project/requirements.txt, porque el modelo se guarda con joblib/scikit-learn y
+# se explica con shap: deben ser las del entrenamiento. Solo lo que la app necesita; sin jupyter, pytest ni psutil.
+# Python 3.12 (el del plan: shap 0.54.1 exige >= 3.12). Se elige en "Advanced settings" al desplegar.
+
+streamlit==1.66.1
+
+# Modelo y explicacion
+numpy==2.5.1
+pandas==3.0.5
+scipy==1.18.1
+scikit-learn==1.9.0
+joblib==1.6.0
+shap==0.54.1
+
+# Respaldo local en parquet y grafica de factores
+pyarrow==26.0.0
+matplotlib==3.11.1
+
+# Consulta a datos.gov.co
+requests==2.34.2
