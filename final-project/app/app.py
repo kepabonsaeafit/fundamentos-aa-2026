@@ -19,10 +19,10 @@ from src import config, explicacion as E, modelo_io
 
 st.set_page_config(page_title="Riesgo de ampliación del plazo", page_icon="📋", layout="centered")
 
-EJEMPLOS = {   # contratos reales de la base de desarrollo, de riesgo alto, medio y bajo con el modelo de prueba
-    "Riesgo alto": "CO1.PCCNTR.6169204",
-    "Riesgo medio": "CO1.PCCNTR.7136864",
-    "Riesgo bajo": "CO1.PCCNTR.6242834",
+EJEMPLOS = {   # contratos reales de 2024 de la base v1, elegidos con el modelo v1 cerca de los percentiles 95, 80 y 30
+    "Riesgo alto": "CO1.PCCNTR.7156334",
+    "Riesgo medio": "CO1.PCCNTR.5777014",
+    "Riesgo bajo": "CO1.PCCNTR.5715394",
 }
 AVISOS = {
     A.AVISO_SIN_PROCESO: "No encontramos el proceso de selección de este contrato en datos.gov.co. Varias variables "
