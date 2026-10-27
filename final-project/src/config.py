@@ -4,6 +4,9 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parents[1]      # final-project/
 DATA_RAW = RAIZ / "data" / "raw"                # inmutable
 DATA_PROCESSED = RAIZ / "data" / "processed"
+# Base v1 (452.494 contratos, 2019-2025). En los computadores del equipo data/processed/base_contratos.parquet es la base
+# vieja (v0): la v1 esta en la subcarpeta v1_A. Todo lo que necesite la v1 debe leerla de aqui.
+BASE_V1 = DATA_PROCESSED / "v1_A" / "base_contratos.parquet"
 MODELS = RAIZ / "models"
 
 SEED = 42
