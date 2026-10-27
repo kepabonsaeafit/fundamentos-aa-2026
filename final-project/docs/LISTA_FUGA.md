@@ -36,7 +36,7 @@
 | `fecha_de_fin_del_contrato` y derivados (`dur_contrato_dias`, `razon_dur`) | Contratos | Incluye las ampliaciones del plazo | Exploración: la duración real sobre la planeada tiene mediana 1,44 con adición y 1,00 sin ella; ROC-AUC univariado 0,71. **F1, paso 3** [VERIFICADO]: es el fin de la última modificación publicada, o 1 día antes, en 1.520 de 1.521 contratos con modificaciones publicadas (565 iguales, 955 un día antes, 1 excepción de -5 días). Paso 2: va 1 día antes que el fin máximo de Modificaciones en 362 de 560 contratos | Solo EDA |
 | `estado_contrato` | Contratos | Estado actual ("Modificado" es un estado final) | ROC-AUC univariado 0,94 (exploración) | Solo EDA |
 | `valor_del_contrato` y derivados (`log_valor_contrato`, `razon_valor`) | Contratos | Incluye las adiciones de valor | Valor actual sobre el precio base: 1,18 con adición frente a 1,00 sin ella (exploración) | Solo EDA |
-| 6 montos de fuentes de recursos (`presupuesto_general_de_la_nacion_pgn`, `sistema_general_de_participaciones`, `sistema_general_de_regal_as`, `recursos_propios_alcald_as_gobernaciones_y_resguardos_ind_genas_`, `recursos_de_credito`, `recursos_propios`) | Contratos | Su suma es el valor actual, que ya incluye las adiciones | La suma es igual a `valor_del_contrato` en el 80,6 % de los contratos; cociente sobre el precio base de 1,26 con adición en el valor frente a 1,00. Sumarlos a las 39 `FEATURES` sube el ROC-AUC de 0,751 a 0,807 (F0, `PLAN.md`, sección 0, puntos 3 y 9) | Solo EDA |
+| 6 montos de fuentes de recursos (`presupuesto_general_de_la_nacion_pgn`, `sistema_general_de_participaciones`, `sistema_general_de_regal_as`, `recursos_propios_alcald_as_gobernaciones_y_resguardos_ind_genas_`, `recursos_de_credito`, `recursos_propios`) | Contratos | Su suma es el valor actual, que ya incluye las adiciones | La suma es igual a `valor_del_contrato` en el 80,6 % de los contratos; cociente sobre el precio base de 1,26 con adición en el valor frente a 1,00. Sumarlos a las 39 `FEATURES` sube el ROC-AUC de 0,751 a 0,807 (F0, base v0, `y_dias`; `PLAN.md`, sección 0, puntos 3 y 9). En la v1: ROC-AUC limpio 0,781; con 6 montos 0,917; con fuga evidente 0,984 | Solo EDA |
 | Pagos, facturado, amortizado, pendientes y saldos (8 columnas) y `dias_firma_a_ult_actualizacion` | Contratos | Ejecución posterior a la firma | Pendientes: ROC-AUC univariado 0,63 (exploración) | Ninguno |
 | `ultima_actualizacion` | Contratos | Fecha de la última edición del registro | ROC-AUC univariado 0,74 (exploración) | Ninguno |
 | Liquidación y reversión (6 columnas) | Contratos | Posteriores al contrato | Por definición | Ninguno |
@@ -45,14 +45,14 @@
 | Ejecución (`mfmm-jqmq`) y Adiciones (`cb9c-h8sn`), conjuntos enteros | Otros | Registran hechos posteriores a la firma | Por definición | Ninguno |
 | `valor_modificacion` | Modificaciones | Es el valor de la versión del contrato, igual a `valor_del_contrato` en el 75 % de las filas | Exploración | Ninguno |
 
-**Contraste global** (exploración, test 2025): con las columnas posteriores a la firma, el mismo modelo pasa de 0,73 / 0,43 a **0,95 / 0,84** de ROC-AUC / PR-AUC.
+**Contraste global** (exploración, test 2025; F0, base v0, `y_dias`): con las columnas posteriores a la firma, el mismo modelo pasa de 0,73 / 0,43 a **0,95 / 0,84** de ROC-AUC / PR-AUC. En la v1 (test 2024): ROC-AUC limpio 0,781; con 6 montos 0,917; con fuga evidente 0,984.
 
 **Decisión:** confirmada desde la F0; la F1 solo agrega evidencia para `fecha_de_fin_del_contrato`.
 
 **Qué hacer después:**
 - **F2:** las columnas de Contratos con uso "solo EDA" se descargan a `data/raw/`; las demás no se descargan (`PLAN.md`, 4.2).
 - **F3:** la base v1 no contiene ninguna columna de esta tabla. Lo comprueba el chequeo 1 de `src/calidad.py` (`FEATURES ∩ COLUMNAS_FUGA = ∅`).
-- **EDA (F4):** muestra el contraste 0,95 / 0,84 y la razón de duración como evidencia de fuga en §3.3 y §3.6.
+- **EDA (F4):** muestra el contraste 0,95 / 0,84 (F0, base v0, `y_dias`) y la razón de duración como evidencia de fuga en §3.3 y §3.6. En la v1: ROC-AUC limpio 0,781; con 6 montos 0,917; con fuga evidente 0,984.
 - **App (G1):** construye solo `FEATURES` e ignora estas columnas aunque la API las devuelva actualizadas.
 
 ## 3. Etiqueta (solo etiqueta)

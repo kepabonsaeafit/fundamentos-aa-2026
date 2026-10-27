@@ -49,7 +49,7 @@ Si la ampliación del plazo refleja con frecuencia una planeación deficiente, l
 
 ## 4. ¿Por qué Machine Learning y no una regla simple?
 
-La alternativa más simple sería asumir que cada entidad repite su hábito: si una entidad suele ampliar los plazos, sus contratos son riesgosos. Esa regla ya captura parte de la señal. Un modelo que combina las variables del contrato y del proceso de selección la supera, **pero por un margen modesto**. Cifras sobre contratos firmados en 2024 (23.999 contratos, tasa base de 0,123), con el modelo entrenado solo con 2019-2023 y usando únicamente variables disponibles al firmar (*preliminar*; intervalos de confianza del 95 % por remuestreo de entidades):
+La alternativa más simple sería asumir que cada entidad repite su hábito: si una entidad suele ampliar los plazos, sus contratos son riesgosos. Esa regla ya captura parte de la señal. Un modelo que combina las variables del contrato y del proceso de selección la supera, **pero por un margen modesto**. Cifras sobre contratos firmados en 2024 (23.999 contratos, tasa base de 0,123), con el modelo entrenado solo con 2019-2023 y usando únicamente variables disponibles al firmar (*preliminar*; F0, base v0, `y_dias`; intervalos de confianza del 95 % por remuestreo de entidades):
 
 | | ROC-AUC | PR-AUC |
 |---|---|---|
@@ -57,7 +57,7 @@ La alternativa más simple sería asumir que cada entidad repite su hábito: si 
 | Modelo (Gradient Boosting sin ajustar) | 0,751 | 0,333 |
 | Diferencia | +0,037 [+0,011, +0,069] | +0,056 [+0,003, +0,113] |
 
-Una versión anterior de este documento citaba un ROC-AUC cercano a 0,81. Esa cifra incluía variables que resultaron ser fuga de información (los montos por fuente de recursos suman el valor final del contrato, que ya incluye las adiciones) y se descartó.
+Una versión anterior de este documento citaba un ROC-AUC cercano a 0,81 (F0, base v0, `y_dias`). Esa cifra incluía variables que resultaron ser fuga de información (los montos por fuente de recursos suman el valor final del contrato, que ya incluye las adiciones) y se descartó. En la v1, la cadena de fuga medida es: ROC-AUC limpio 0,781; con 6 montos 0,917; con fuga evidente 0,984.
 
 Lo que sabemos hasta ahora sobre dónde aporta el modelo, con sus límites:
 

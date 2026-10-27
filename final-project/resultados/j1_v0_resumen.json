@@ -1,0 +1,78 @@
+{
+  "base": "v0",
+  "n_train": 119558,
+  "n_test": 23711,
+  "tasa_train": 0.10953679385737466,
+  "tasa_test": 0.12251697524355784,
+  "m_elegido": 1.0,
+  "n_boot": 200,
+  "entidades_test": 1632,
+  "entidades_no_vistas": 232,
+  "contratos_no_vistos": 799,
+  "positivos_no_vistos": 55,
+  "intra_entidad": {
+    "hgb_f0_nativas": {
+      "pares": 0.61889813827606,
+      "por_entidad": 0.6440986338002965,
+      "n_entidades": 482,
+      "n_pares": 487720,
+      "pares_ic": [
+        0.5538439243336002,
+        0.7006668348730964
+      ],
+      "por_entidad_ic": [
+        0.6195006365508112,
+        0.6707571318622971
+      ]
+    },
+    "hgb_ordinal": {
+      "pares": 0.6547178709095383,
+      "por_entidad": 0.6825945053285319,
+      "n_entidades": 482,
+      "n_pares": 487720,
+      "pares_ic": [
+        0.5951396966247535,
+        0.7312313467926351
+      ],
+      "por_entidad_ic": [
+        0.6588946331373102,
+        0.7058052707280714
+      ]
+    }
+  },
+  "intra_entidad_min20": {
+    "hgb_f0_nativas": {
+      "pares": 0.619024035170798,
+      "por_entidad": 0.6596782810250854,
+      "n_entidades": 179,
+      "n_pares": 483583,
+      "pares_ic": [
+        0.5518048665344688,
+        0.6884899853742645
+      ],
+      "por_entidad_ic": [
+        0.6320909738075048,
+        0.691407975099311
+      ]
+    },
+    "hgb_ordinal": {
+      "pares": 0.6545401720077009,
+      "por_entidad": 0.6738092705525658,
+      "n_entidades": 179,
+      "n_pares": 483583,
+      "pares_ic": [
+        0.5870898290862889,
+        0.7229021325392011
+      ],
+      "por_entidad_ic": [
+        0.6397236428966907,
+        0.7061351481306913
+      ]
+    }
+  },
+  "cumple_criterio": {
+    "hgb_f0_nativas": false,
+    "hgb_ordinal": true
+  },
+  "segundos": 26
+}
