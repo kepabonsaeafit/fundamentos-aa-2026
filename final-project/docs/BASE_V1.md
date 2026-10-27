@@ -32,6 +32,9 @@
 - **Madurez:** un contrato es maduro si su fin planeado más 60 días ya pasó
   al corte. Si la duración planeada es 0 o falta, es maduro si su firma más
   365 días ya pasó. Resultado: 99,2 % maduro.
+- **No maduros:** se excluyen del entrenamiento y de la evaluación; `train` y
+  `test` se filtran por `eval_madura = True`. No se usan como negativos ni se
+  imputan; quedan solo para el análisis descriptivo de censura.
 - **Chequeos 11 y 12** (montos negativos y duración fuera de 1-3.650 días):
   no bloquean, salvo que su tasa supere el doble de la de la v0.
 - **Chequeo 15** (tasa de `y` por año entre 19 y 26 %): falló, porque
