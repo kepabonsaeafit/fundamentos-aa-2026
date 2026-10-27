@@ -195,6 +195,24 @@ def test_el_respaldo_por_ruta_lee_solo_la_fila_pedida(tmp_path):
         A.obtener_consulta(ID, cliente=ClienteFalso(error=RuntimeError("sin red")), respaldo=tmp_path / "no_existe.parquet")
 
 
+def test_el_respaldo_demo_de_la_nube_es_seguro_y_sirve_para_los_ejemplos():
+    import ast
+    from pathlib import Path
+    app = Path(config.RAIZ) / "app"
+    ruta = app / "respaldo_demo.parquet"
+    demo = pd.read_parquet(ruta)
+    assert list(demo.columns) == A.COLS_RESPALDO                              # solo las columnas del respaldo, nada mas
+    assert not set(demo.columns) & (F.COLUMNAS_FUGA | config.PII)             # ni fuga ni datos personales
+    assert demo["id_contrato"].is_unique and 30 <= len(demo) <= 60
+    arbol = ast.parse((app / "app.py").read_text(encoding="utf-8"))
+    ejemplos = next(ast.literal_eval(n.value) for n in arbol.body
+                    if isinstance(n, ast.Assign) and getattr(n.targets[0], "id", "") == "EJEMPLOS")
+    assert set(ejemplos.values()) <= set(demo["id_contrato"])                  # la demo desplegada puede mostrar los 3 ejemplos
+    for idc in demo["id_contrato"]:
+        c = A.consulta_desde_respaldo(ruta, idc)                               # y cada contrato arma sus features
+        assert list(c.features.columns) == F.FEATURES and c.fuente == "respaldo"
+
+
 def test_la_consulta_repetida_sale_del_cache():
     cliente = ClienteFalso(_contrato(), _procesos())
     A.obtener_consulta(ID, cliente=cliente)
