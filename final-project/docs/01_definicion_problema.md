@@ -1,13 +1,13 @@
 # Definición del problema: riesgo de ampliación del plazo en contratos públicos (SECOP II)
 
-> **Borrador v0.2** — pendiente de revisión del equipo. Las cifras marcadas como *preliminares* salen de la exploración de factibilidad (`00_exploracion/REPORTE_EXPLORACION.md`) y se actualizarán con el modelo final.
-> La v0.2 (25 de octubre de 2026) registra la etiqueta aprobada en la verificación de la F1 (sección 2): el objetivo pasa a llamarse **ampliación del plazo**.
+> **v1.0 (octubre de 2026).** Las cifras salen de las salidas ejecutadas de `model_development.ipynb` y de `resultados/`, con el modelo v1 y la base v1: una muestra del 10 % de los contratos firmados entre 2019 y 2025.
+> Las cifras de la etiqueta salen de las Tablas 5.1 a 5.4 del notebook (sección 3.3.5); las de desempeño, de las secciones 3.6 y 3.7.
 
 ## 1. Contexto
 
 En Colombia, las entidades públicas publican su contratación en el SECOP II, la plataforma transaccional de Colombia Compra Eficiente. Una vez firmado, un contrato estatal puede modificarse: se le puede **prorrogar** (ampliar el plazo) o **adicionar** (aumentar el valor). La Ley 80 de 1993 permite estas modificaciones y limita las adiciones de valor al 50 % del valor inicial del contrato. Sin embargo, la doctrina y la jurisprudencia coinciden en que deben ser una herramienta **excepcional**, justificada por hechos que no podían preverse al planear el contrato.
 
-En la práctica, el uso de prórrogas es frecuente. Un estudio sobre la Gobernación del Tolima (2017-2018), hecho con datos del propio SECOP, encontró que la entidad recurría de forma constante a adiciones y prórrogas y las asoció con fallas en el principio de planeación. En nuestra exploración, cerca del **12 %** de los contratos firmados en 2024 terminaron con días adicionados, y la tasa subió a cerca del **20 %** en 2025 (*preliminar*). Con la etiqueta aprobada en la F1 (sección 2), cerca de **uno de cada cuatro** contratos termina con el plazo ampliado (24,4 % en una muestra de 1.400 contratos de 2019-2025), y el salto de 2025 resulta ser sobre todo un efecto de cómo se registran los días adicionados.
+En la práctica, el uso de prórrogas es frecuente. Un estudio sobre la Gobernación del Tolima (2017-2018), hecho con datos del propio SECOP, encontró que la entidad recurría de forma constante a adiciones y prórrogas y las asoció con fallas en el principio de planeación. Con la etiqueta aprobada (sección 2), el 27,6 % de los contratos de la base v1 (452.494 contratos firmados entre 2019 y 2025) termina con el plazo ampliado: más de uno de cada cuatro. Por año de firma la tasa va de 22,2 % (2019) a 30,0 % (2023); en 2024 es 24,7 % y en 2025, 27,1 % (Tabla 5.1 del notebook), así que la etiqueta no tiene un salto en 2025. Los que sí saltan en 2025 son los días adicionados (de 12,1 % a 20,0 %), una razón más para no usarlos solos como etiqueta (sección 2).
 
 El problema es de escala: cada año se firman cientos de miles de contratos y quienes los vigilan (veedurías, oficinas de control interno, periodistas) no pueden revisarlos todos. Hoy las ampliaciones del plazo se detectan **después** de que ocurren, cuando ya hay un retraso en la entrega de obras o servicios.
 
@@ -23,19 +23,19 @@ El problema es de escala: cada año se firman cientos de miles de contratos y qu
 | Etiqueta | Ampliación del plazo: el contrato tuvo días adicionados o una modificación publicada que extendió su plazo después de la firma (definición abajo). |
 | Horizonte | El desenlace ocurre meses después de la predicción, durante la ejecución del contrato. |
 
-**Sobre la etiqueta (aprobada en la F1, 23 de octubre de 2026).** Un contrato es positivo (`y = 1`) si tiene días adicionados (`dias_adicionados > 0`) **o** si en el conjunto de Modificaciones tiene una modificación publicada (estado `Publicado`) con días extendidos (`dias_extendidos > 0`) y aprobada más de un día después de la firma (`fecha_de_aprobacion > fecha_de_firma + 1 día`). El día de margen cubre un desfase de zona horaria entre los dos conjuntos.
+**Sobre la etiqueta (aprobada el 23 de octubre de 2026).** Un contrato es positivo (`y = 1`) si tiene días adicionados (`dias_adicionados > 0`) **o** si en el conjunto de Modificaciones tiene una modificación publicada (estado `Publicado`) con días extendidos (`dias_extendidos > 0`) y aprobada más de un día después de la firma (`fecha_de_aprobacion > fecha_de_firma + 1 día`). El día de margen cubre un desfase de zona horaria entre los dos conjuntos.
 
-- **Por qué no bastan los días adicionados.** La etiqueta inicial (`dias_adicionados > 0`) **subestima** los positivos: el campo copia los días de la última modificación publicada y vuelve a 0 cuando después se publica otra sin días, como una terminación o una liquidación. En una muestra de 1.400 contratos (200 por año de firma), los días adicionados marcan el 12,1 % y la etiqueta aprobada el 24,4 %.
-- **Qué mide.** Que el contrato terminó después de lo pactado al firmar. Por eso el objetivo se llama **ampliación del plazo** y no prórroga en sentido estricto: las suspensiones y los ajustes de fecha también cuentan como positivos. Son cerca del **2,4 %** de los contratos positivos. Como una cuarta parte de las modificaciones tiene un texto genérico, la proporción real no se conoce con precisión.
-- **Limitaciones.** Los contratos sin filas en Modificaciones (del 20 % al 34 % según el año) solo se pueden marcar por los días adicionados. En la muestra quedaron además 3 contratos de 2019-2020 cuyo fin avanzó sin días registrados, que ninguna etiqueta basada en días marca.
+- **Por qué no bastan los días adicionados.** La etiqueta inicial (`dias_adicionados > 0`) subestima los positivos. En la base v1 marca el 13,3 % de los contratos frente al 27,6 % de la etiqueta aprobada: solo el 48,2 % de los positivos tiene días adicionados, y los otros 64.759 contratos solo aparecen en Modificaciones (Tablas 5.1 y 5.4 del notebook).
+- **Qué mide.** Que el contrato terminó después de lo pactado al firmar. Por eso el objetivo se llama **ampliación del plazo** y no prórroga en sentido estricto: las suspensiones y los ajustes de fecha también cuentan como positivos. Qué proporción de los positivos son de ese tipo no se midió en la base v1 [NO EVALUADO].
+- **Limitaciones.** La etiqueta descansa casi entera en Modificaciones: coincide con la que usa solo Modificaciones salvo en 150 contratos que únicamente tienen días adicionados (Tabla 5.3). Una ampliación que no quede registrada ni en los días adicionados ni en Modificaciones no se marca, y su frecuencia no se midió [NO EVALUADO].
 
-El notebook documenta la etiqueta en §3.3.
+El notebook documenta la etiqueta en 3.3.5.
 
-**Sobre el horizonte.** Como el desenlace se observa tiempo después de la predicción, solo se evalúa el modelo con contratos cuyo plazo ya venció. Los contratos todavía en ejecución tienen una etiqueta incompleta (censura) y se excluyen de la evaluación. Además, el desempeño se reportará por separado según la duración planeada del contrato, para verificar que el modelo también funciona cuando el desenlace está lejos de la fecha de firma.
+**Sobre el horizonte.** Como el desenlace se observa tiempo después de la predicción, solo se evalúa el modelo con contratos cuyo plazo ya venció. Los contratos todavía en ejecución tienen una etiqueta incompleta (censura) y se excluyen de la evaluación. Además, el desempeño por tramo de duración planeada (hasta 3, de 3 a 6, de 6 a 12 y más de 12 meses) está reportado en la sección 3.7 del notebook, para verificar que el modelo también funciona cuando el desenlace está lejos de la fecha de firma. El modelo le gana a la regla por entidad en todos los tramos.
 
 ## 3. ¿Por qué deberían los datos de la firma predecir una ampliación del plazo?
 
-Si la ampliación del plazo refleja con frecuencia una planeación deficiente, las señales de esa planeación deberían ser visibles al firmar. De ahí salen las hipótesis que guiarán el EDA. Son **hipótesis por verificar**, no hallazgos:
+Si la ampliación del plazo refleja con frecuencia una planeación deficiente, las señales de esa planeación deberían ser visibles al firmar. De ahí salen las siete hipótesis que guiaron el EDA; el notebook las contrasta con los datos en la sección 3.3.6:
 
 | Hipótesis | Señal observable al firmar |
 |---|---|
@@ -49,24 +49,24 @@ Si la ampliación del plazo refleja con frecuencia una planeación deficiente, l
 
 ## 4. ¿Por qué Machine Learning y no una regla simple?
 
-La alternativa más simple sería asumir que cada entidad repite su hábito: si una entidad suele ampliar los plazos, sus contratos son riesgosos. Esa regla ya captura parte de la señal. Un modelo que combina las variables del contrato y del proceso de selección la supera, **pero por un margen modesto**. Cifras sobre contratos firmados en 2024 (23.999 contratos, tasa base de 0,123), con el modelo entrenado solo con 2019-2023 y usando únicamente variables disponibles al firmar (*preliminar*; F0, base v0, `y_dias`; intervalos de confianza del 95 % por remuestreo de entidades):
+La alternativa más simple sería asumir que cada entidad repite su hábito: si una entidad suele ampliar los plazos, sus contratos son riesgosos. Esa regla ya captura parte de la señal. El modelo, que combina las variables del contrato y del proceso de selección, la supera con claridad: la diferencia en PR-AUC es de +0,114 y su intervalo no incluye 0. Cifras sobre los 88.088 contratos de 2024 con el plazo ya vencido (tasa base de 0,247), con el modelo entrenado solo con 2019-2023 y usando únicamente variables disponibles al firmar (sección 3.6 del notebook; entre corchetes, intervalos de confianza del 95 % por remuestreo de entidades, 200 repeticiones):
 
 | | ROC-AUC | PR-AUC |
 |---|---|---|
-| Regla: tasa histórica de la entidad | 0,714 | 0,277 |
-| Modelo (Gradient Boosting sin ajustar) | 0,751 | 0,333 |
-| Diferencia | +0,037 [+0,011, +0,069] | +0,056 [+0,003, +0,113] |
+| Regla: tasa histórica de la entidad | 0,682 [0,628; 0,726] | 0,470 [0,355; 0,562] |
+| Modelo (HGB ajustado, v1) | 0,781 [0,752; 0,807] | 0,584 [0,488; 0,659] |
+| Diferencia | +0,099 [+0,067; +0,130] | +0,114 [+0,082; +0,158] |
 
-Una versión anterior de este documento citaba un ROC-AUC cercano a 0,81 (F0, base v0, `y_dias`). Esa cifra incluía variables que resultaron ser fuga de información (los montos por fuente de recursos suman el valor final del contrato, que ya incluye las adiciones) y se descartó. En la v1, la cadena de fuga medida es: ROC-AUC limpio 0,781; con 6 montos 0,917; con fuga evidente 0,984.
+**Antecedente (no es un resultado de la v1).** Una versión anterior de este documento citaba un ROC-AUC cercano a 0,81, que incluía los montos por fuente de recursos: esos montos suman el valor final del contrato, que ya incluye las adiciones, y se descartaron por fuga. En la v1 esa fuga se mide: el ROC-AUC del modelo sube de 0,781 a 0,917 al agregarle esos 6 montos, y a 0,984 con la fuga evidente (estado, valor y fecha de fin del contrato; sección 3.6).
 
-Lo que sabemos hasta ahora sobre dónde aporta el modelo, con sus límites:
+Dónde aporta el modelo, con sus límites (test 2024):
 
-- **Entidades que no vio en el entrenamiento** (235 entidades, 804 contratos, 55 con días adicionados). La regla no tiene información sobre ellas y queda en ROC-AUC 0,5 por construcción. El modelo alcanza un ROC-AUC de 0,708 [0,584, 0,800] y un PR-AUC de 0,180 frente a una tasa base de 0,068. El intervalo es ancho porque son pocos contratos.
-- **Dentro de una misma entidad.** Es lo que enfrenta una veeduría que revisa los contratos de una sola entidad. Entre un contrato con el plazo ampliado y uno sin ampliación, de la misma entidad, el modelo puntúa más alto al primero en cerca del 61 % de los pares (ROC-AUC dentro de entidad de 0,612 [0,524, 0,685]; 0,633 [0,609, 0,657] promediando por entidad; 486 entidades con ambas clases y 501.046 pares). La regla simple no distingue entre contratos de una misma entidad (0,5 por construcción). El efecto es moderado, y con solo las variables ya verificadas el intervalo por pares incluye 0,5 (0,592 [0,473, 0,670]; por entidad, 0,637 [0,609, 0,661]).
-- **Contratos de mayor riesgo.** En el 1 % de contratos con mayor puntaje (240), el 65 % terminó con el plazo ampliado [51 %, 78 %], frente al 44 % de la regla simple [17 %, 53 %] (el 54 % si la regla se suaviza para entidades con pocos contratos). En el 5 % y el 10 % de mayor puntaje la diferencia con la regla no se distingue de cero.
-- **Variables por verificar.** Parte de la ventaja depende de variables que no estaban verificadas cuando se midieron estas cifras, entre ellas la fecha de inicio del contrato. La F1 no encontró fuga en esa fecha, con una limitación de método, y la prueba final será una ablación con el modelo definitivo (`docs/LISTA_FUGA.md`). Con solo las variables ya verificadas en ese momento, la diferencia con la regla en ROC-AUC (+0,027 [-0,002, +0,060]) y en PR-AUC (+0,038 [-0,013, +0,099]) no es clara.
+- **Entidades que no vio en el entrenamiento** (1.834 contratos, 211 con el plazo ampliado, tasa base de 0,115). La regla no tiene información sobre ellas y queda en ROC-AUC 0,5 por construcción. El modelo alcanza un ROC-AUC de 0,721 [0,655; 0,791], +0,221 sobre la regla [+0,155; +0,291], y un PR-AUC de 0,279 [0,170; 0,449]. El intervalo del PR-AUC es ancho porque son pocos positivos.
+- **Dentro de una misma entidad.** Es lo que enfrenta una veeduría que revisa los contratos de una sola entidad. Entre un contrato con el plazo ampliado y uno sin ampliación de la misma entidad, el modelo puntúa más alto al primero en el 70 % de los pares (ROC-AUC dentro de entidad de 0,701 [0,604; 0,753]; 0,703 [0,691; 0,716] promediando por entidad; 1.199 entidades con ambas clases y 11.953.889 pares; sección 3.7). La regla simple no distingue entre contratos de una misma entidad (0,5 por construcción).
+- **Contratos de mayor riesgo.** Si se revisa el 5 % de mayor puntaje de 2024 (unos 4.400 contratos), el 83 % termina con el plazo ampliado, frente al 74 % con la regla por entidad y al 25 % al azar; en el 1 % más alto son el 93 % frente al 84 %, y en el 10 %, el 73 % frente al 59 %. La ventaja sobre la regla solo se distingue de cero en el 10 % (+0,135 [+0,065; +0,199]); en el 1 % y en el 5 % el intervalo de la diferencia incluye el 0 (sección 3.7).
+- **Variables con riesgo de fuga.** Sin las dos variables que usan la fecha de inicio, el PR-AUC de 2024 pasa de 0,584 a 0,580 (+0,110 sobre la regla [+0,079; +0,153]); sin las 8 variables por verificar queda en 0,584 (+0,114 [+0,083; +0,157]). La ventaja sobre la regla no depende de esas variables (sección 3.6). La limitación de la fecha de inicio está en `docs/LISTA_FUGA.md`.
 
-Estas cifras salen de una muestra del 4 % de los contratos, con la etiqueta inicial (días adicionados, que deja fuera cerca de la mitad de los positivos) y sin ajustar el modelo. Se rehacen con la muestra del 10 %, la etiqueta mejorada y el modelo ajustado, y el notebook reporta el resultado final con honestidad, aunque la ventaja resulte pequeña. El valor del ML es cruzar señales de planeación que ninguna regla individual captura y poder puntuar contratos de entidades sin historial.
+El modelo supera a la regla por entidad en PR-AUC y en ROC-AUC, con más ventaja donde la regla no tiene información (entidades no vistas, dentro de una misma entidad) y menos en la parte más alta de la lista. En 2025 el modelo congelado baja a un PR-AUC de 0,550, pero sigue ganándole a la regla (+0,084 [+0,033; +0,157]; sección 3.6). El valor del ML es cruzar señales de planeación que ninguna regla individual captura y poder puntuar contratos de entidades sin historial.
 
 ## 5. Usuarios y decisión que apoya
 
@@ -80,8 +80,9 @@ Estas cifras salen de una muestra del 4 % de los contratos, con la etiqueta inic
 
 El usuario no necesita conocer las variables del modelo ni llenar formularios largos.
 
-1. **Consulta por contrato:** el usuario pega el número del contrato o el enlace de SECOP II. La aplicación consulta los datos en la API pública y devuelve el puntaje de riesgo junto con los factores que más lo explican, en lenguaje claro (explicabilidad con SHAP).
-2. **Consulta por entidad:** el usuario elige una entidad y obtiene sus contratos recientes ordenados por riesgo.
+**Consulta por contrato:** el usuario pega el número del contrato o el enlace de SECOP II. La aplicación consulta los datos en la API pública y devuelve el nivel de riesgo (bajo, medio o alto) y su percentil, junto con los factores que más lo explican, en lenguaje claro (explicabilidad con SHAP).
+
+**Trabajo futuro: consulta por entidad.** El usuario elegiría una entidad y obtendría sus contratos recientes ordenados por riesgo. La aplicación actual solo consulta por contrato.
 
 **Regla de consistencia entre entrenamiento y uso.** Si la aplicación consulta un contrato que ya está en ejecución, la API devuelve algunos campos actualizados después de la firma. Por ejemplo, la fecha de fin ya incluye las ampliaciones del plazo y el estado puede decir "modificado". Esos campos son fuga de información. La aplicación debe usar **exclusivamente** las variables disponibles al firmar, las mismas del entrenamiento; la duración planeada se toma del proceso de selección y no de la fecha de fin del contrato.
 
@@ -95,15 +96,15 @@ Todos los datos provienen de Datos Abiertos Colombia (datos.gov.co), publicados 
 | Procesos de Contratación | `p6dx-8zbt` | Variables del proceso de selección (competencia, tiempos, precio base) |
 | Modificaciones a contratos | `u8cx-r425` | Etiqueta: modificaciones publicadas que extienden el plazo |
 | Adiciones | `cb9c-h8sn` | Solo exploración; descartado como etiqueta por mezclar eventos administrativos |
-| Ejecución Contratos | `mfmm-jqmq` | Descartado: es información posterior a la firma (fuga) y cubre solo una fracción de los contratos |
+| Ejecución Contratos | `mfmm-jqmq` | Descartado: es información posterior a la firma (fuga) y, según la exploración inicial (no re-medido en v1), cubre solo una fracción de los contratos |
 
-**Periodo:** contratos firmados entre 2019 y 2025. Antes de 2019 el campo de días adicionados casi no se diligenciaba, y los contratos de 2026 se excluyen porque la mayoría aún no termina. No se usan las columnas con datos personales (representantes legales, supervisores, cuentas bancarias, entre otras).
+**Periodo:** contratos firmados entre 2019 y 2025. Según la exploración inicial (no re-medido en v1), antes de 2019 el campo de días adicionados casi no se diligenciaba. Los contratos de 2026 se excluyen porque la mayoría aún no termina. No se usan las columnas con datos personales (representantes legales, supervisores, cuentas bancarias, entre otras).
 
 ## 8. Alcance y consideraciones éticas
 
 - **El modelo estima riesgo de ampliación del plazo, no detecta irregularidades ni corrupción.** Una ampliación del plazo (prórroga, suspensión o ajuste de fechas) puede ser legítima cuando la causan hechos imprevisibles. La interfaz debe comunicarlo así.
 - **Es una herramienta de priorización.** La decisión de revisar, cuestionar o actuar sobre un contrato siempre es de una persona.
-- **Limitaciones conocidas:** la etiqueta es imperfecta (sección 2); la tasa de días adicionados saltó en 2025 sobre todo por cómo se registra el campo, no por un cambio de comportamiento, y aun así la deriva se monitorea (ver estrategia de reajuste); y el modelo se basa en lo que las entidades registran en SECOP II, que puede tener errores de diligenciamiento.
+- **Limitaciones conocidas:** la etiqueta es imperfecta (sección 2); los días adicionados saltan en 2025 (de 12,1 % a 20,0 %) pero la etiqueta no (de 24,7 % a 27,1 %), lo que es consistente con un cambio en el registro de ese campo (no verificado); en 2025 el modelo congelado baja de PR-AUC 0,584 a 0,550 y sigue ganándole a la regla, y la deriva se monitorea (ver estrategia de reajuste); y el modelo se basa en lo que las entidades registran en SECOP II, que puede tener errores de diligenciamiento.
 
 ## Referencias
 
