@@ -30,6 +30,13 @@ ipykernel==7.3.0
 nbconvert==7.17.2
 nbformat==5.11.1
 
+# Las usa model_development.ipynb y hoy llegan como dependencia de otro paquete. Se fijan aqui
+# para que el entorno no dependa de que ipykernel / nbconvert las sigan trayendo.
+#   ipython: IPython.display (Markdown, display) en la celda de configuracion. La trae ipykernel.
+#   jinja2:  DataFrame.style en las tablas de 3.5 (pandas lo pide como opcional). La trae nbconvert.
+ipython==9.17.1
+jinja2==3.1.6
+
 # Nuevas en el proyecto final
 # shap: par con scikit-learn==1.9.0. shap no limita la version de scikit-learn,
 #       pide numpy>=2 y Python>=3.12. Su soporte del HistGradientBoostingClassifier
