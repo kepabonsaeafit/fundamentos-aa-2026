@@ -96,15 +96,15 @@ Todos los datos provienen de Datos Abiertos Colombia (datos.gov.co), publicados 
 | Procesos de Contratación | `p6dx-8zbt` | Variables del proceso de selección (competencia, tiempos, precio base) |
 | Modificaciones a contratos | `u8cx-r425` | Etiqueta: modificaciones publicadas que extienden el plazo |
 | Adiciones | `cb9c-h8sn` | Solo exploración; descartado como etiqueta por mezclar eventos administrativos |
-| Ejecución Contratos | `mfmm-jqmq` | Descartado: es información posterior a la firma (fuga) y cubre solo una fracción de los contratos |
+| Ejecución Contratos | `mfmm-jqmq` | Descartado: es información posterior a la firma (fuga) y, según la exploración inicial (no re-medido en v1), cubre solo una fracción de los contratos |
 
-**Periodo:** contratos firmados entre 2019 y 2025. Antes de 2019 el campo de días adicionados casi no se diligenciaba, y los contratos de 2026 se excluyen porque la mayoría aún no termina. No se usan las columnas con datos personales (representantes legales, supervisores, cuentas bancarias, entre otras).
+**Periodo:** contratos firmados entre 2019 y 2025. Según la exploración inicial (no re-medido en v1), antes de 2019 el campo de días adicionados casi no se diligenciaba. Los contratos de 2026 se excluyen porque la mayoría aún no termina. No se usan las columnas con datos personales (representantes legales, supervisores, cuentas bancarias, entre otras).
 
 ## 8. Alcance y consideraciones éticas
 
 - **El modelo estima riesgo de ampliación del plazo, no detecta irregularidades ni corrupción.** Una ampliación del plazo (prórroga, suspensión o ajuste de fechas) puede ser legítima cuando la causan hechos imprevisibles. La interfaz debe comunicarlo así.
 - **Es una herramienta de priorización.** La decisión de revisar, cuestionar o actuar sobre un contrato siempre es de una persona.
-- **Limitaciones conocidas:** la etiqueta es imperfecta (sección 2); los días adicionados saltan en 2025 (de 12,1 % a 20,0 %) pero la etiqueta no (de 24,7 % a 27,1 %), lo que se atribuye a cómo se guarda ese campo [SUPUESTO: la causa no se midió]; en 2025 el modelo congelado baja de PR-AUC 0,584 a 0,550 y sigue ganándole a la regla, y la deriva se monitorea (ver estrategia de reajuste); y el modelo se basa en lo que las entidades registran en SECOP II, que puede tener errores de diligenciamiento.
+- **Limitaciones conocidas:** la etiqueta es imperfecta (sección 2); los días adicionados saltan en 2025 (de 12,1 % a 20,0 %) pero la etiqueta no (de 24,7 % a 27,1 %), lo que es consistente con un cambio en el registro de ese campo (no verificado); en 2025 el modelo congelado baja de PR-AUC 0,584 a 0,550 y sigue ganándole a la regla, y la deriva se monitorea (ver estrategia de reajuste); y el modelo se basa en lo que las entidades registran en SECOP II, que puede tener errores de diligenciamiento.
 
 ## Referencias
 

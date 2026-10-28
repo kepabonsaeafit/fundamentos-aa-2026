@@ -2,16 +2,16 @@
 
 Documento de trabajo para cerrar las lecturas pendientes de `notebooks/03_eda.ipynb` (§4.3, §5, §6.1–§6.7, §7.2 y §8). No modifica el notebook.
 
-Cada **Decisión** describe lo que hace el pipeline v1, verificado contra `src/features.py`, `src/preprocesamiento.py`, `src/modelo.py`, `src/modelado.py` y `src/evaluacion.py`, con archivo y línea. Las recomendaciones del EDA que el pipeline no aplica quedan en **Alternativas** con la razón. Las cifras del EDA salen de `docs/eda_tablas.md` y se citan por tabla; para §6.1–§6.5, §6.7 y §7.2 la **Evidencia principal** son las tablas `X.b` sobre train 2019–2023, con la tabla original 2019–2025 como contraste; §6.6 usa test 2024 porque la tasa histórica se calcula con 2019–2023 y se evalúa fuera de muestra. Las tablas `X.b` usan el train completo (n = 261.831), no solo los 261.249 maduros con los que entrena el modelo; describen el tramo, no el ajuste, y las diferencias en pp son frente a la tasa base del subconjunto. Las cifras de la cadena de fuga de §8 salen de `resultados/`. Las hipótesis H1–H7 son las de `docs/01_definicion_problema.md:40-48`. El lenguaje es asociativo: “se asocia con”, “es consistente con”.
+Cada **Decisión** describe lo que hace el pipeline v1, verificado contra `src/features.py`, `src/preprocesamiento.py`, `src/modelo.py`, `src/modelado.py` y `src/evaluacion.py`, con archivo y línea. Las recomendaciones del EDA que el pipeline no aplica quedan en **Alternativas** con la razón. Las cifras del EDA salen de `docs/eda_tablas.md` y se citan por tabla; para §6.1–§6.5, §6.7 y §7.2 la **Evidencia principal** son las tablas `X.b` sobre train 2019–2023, con la tabla original 2019–2025 como contraste; §6.6 usa test 2024 porque la tasa histórica se calcula con 2019–2023 y se evalúa fuera de muestra. Las tablas `X.b` usan el train completo (n = 261.831), no solo los 261.249 maduros con los que entrena el modelo; describen el tramo, no el ajuste, y las diferencias en pp son frente a la tasa base del subconjunto. Las cifras de la cadena de fuga de §8 salen de `resultados/`. Las hipótesis H1–H7 son las de `docs/01_definicion_problema.md`, §3. El lenguaje es asociativo: “se asocia con”, “es consistente con”.
 
 ## §4.3 Madurez y etiqueta
 
-**Decisión:** Usar `y` (ampliación del plazo; incluye suspensiones y ajustes de fecha, `docs/01_definicion_problema.md:26-29`) como etiqueta y filtrar `eval_madura = True` en entrenamiento y evaluación. El filtro está en `split_temporal` (`src/evaluacion.py:38-41`): ambos índices exigen `base["eval_madura"]`; el modelo se ajusta con esos índices y con `base["y"]` (`src/modelo.py:78-79`). Los no maduros no se usan como negativos ni se imputan, y `eval_madura` no entra como feature (no está en `FEATURES`, `src/features.py:85-87`). La etiqueta es `y = y_dias | y_modif` (`src/etiqueta.py:72`; metadatos en `src/modelo.py:51`).
+**Decisión:** Usar `y` (ampliación del plazo; incluye suspensiones y ajustes de fecha, `docs/01_definicion_problema.md`, §2 («Sobre la etiqueta»)) como etiqueta y filtrar `eval_madura = True` en entrenamiento y evaluación. El filtro está en `split_temporal` (`src/evaluacion.py:38-41`): ambos índices exigen `base["eval_madura"]`; el modelo se ajusta con esos índices y con `base["y"]` (`src/modelo.py:78-79`). Los no maduros no se usan como negativos ni se imputan, y `eval_madura` no entra como feature (no está en `FEATURES`, `src/features.py:85-87`). La etiqueta es `y = y_dias | y_modif` (`src/etiqueta.py:72`; metadatos en `src/modelo.py:51`).
 
 **Alternativas:**
 - Incluir todos los contratos y usar `eval_madura` como feature o peso.
 - Imputar `y = 0` a los no maduros.
-- Modelo de supervivencia que use la censura (fuera de alcance): requeriría modelar el tiempo hasta la ampliación y los contratos que aún no la han tenido; el alcance v1 es clasificación binaria con contratos maduros (`docs/01_definicion_problema.md:18-24`, `34`).
+- Modelo de supervivencia que use la censura (fuera de alcance): requeriría modelar el tiempo hasta la ampliación y los contratos que aún no la han tenido; el alcance v1 es clasificación binaria con contratos maduros (`docs/01_definicion_problema.md`, §2: tabla de formulación y «Sobre el horizonte»).
 
 **Por qué:** Un contrato no maduro no ha tenido tiempo de que se observe una ampliación; tratarlo como negativo confunde censura con ausencia de evento. La pérdida de muestra es pequeña: en train 2019–2023 solo 582 de 261.831 contratos (0,22 %) no son maduros (suma de `n no maduros` de la Tabla 4.3.4). La etiqueta aprobada ya incorpora las ampliaciones publicadas en Modificaciones (`src/etiqueta.py:71-72`).
 
@@ -34,7 +34,7 @@ Cada **Decisión** describe lo que hace el pipeline v1, verificado contra `src/f
 
 ## §6.1 H1. Los procesos apresurados se asocian con más ampliaciones del plazo
 
-**Resultado: parcial** frente a H1 (`docs/01_definicion_problema.md:42`). La hipótesis espera que los procesos más apresurados (menos días entre publicación y firma) terminen más con el plazo ampliado. En train, el tramo de 0 días queda por debajo de la base (26,6 % frente a 28,8 %) y el máximo está en 31–60 días (40,1 %); la asociación existe, pero no es monótona ni en la dirección de “más apresurado, más ampliación”.
+**Resultado: parcial** frente a H1 (`docs/01_definicion_problema.md`, §3). La hipótesis espera que los procesos más apresurados (menos días entre publicación y firma) terminen más con el plazo ampliado. En train, el tramo de 0 días queda por debajo de la base (26,6 % frente a 28,8 %) y el máximo está en 31–60 días (40,1 %); la asociación existe, pero no es monótona ni en la dirección de “más apresurado, más ampliación”.
 
 **Decisión:** `dias_publicacion_a_firma` entra como numérica (`src/features.py:75`); se calcula como `(firma - publicación).dt.days.clip(-30, 1000)` (`src/features.py:269`). En la familia `arbol` del pipeline v1 (`src/modelo.py:27`, `35-39`) las numéricas pasan crudas (`src/preprocesamiento.py:173`) y el HGB maneja los NaN de forma nativa (`src/preprocesamiento.py:8-10`). No hay imputación por mediana ni indicador `sin_publicacion` en v1; esos pasos solo existen en la familia `distancia` (`src/preprocesamiento.py:180-189`), que no es el artefacto.
 
@@ -54,7 +54,7 @@ Cada **Decisión** describe lo que hace el pipeline v1, verificado contra `src/f
 
 ## §6.2 H2. Poca competencia se asocia con más ampliaciones del plazo
 
-**Resultado: contraria a la hipótesis** H2 (`docs/01_definicion_problema.md:43`). La hipótesis espera más ampliaciones cuando hay poca competencia; los datos muestran lo contrario en el número de respuestas: 0 respuestas queda en la base (28,9 %) y 10+ sube a 50,2 %, mientras que 1–3 respuestas queda por debajo (24,7 %).
+**Resultado: contraria a la hipótesis** H2 (`docs/01_definicion_problema.md`, §3). La hipótesis espera más ampliaciones cuando hay poca competencia; los datos muestran lo contrario en el número de respuestas: 0 respuestas queda en la base (28,9 %) y 10+ sube a 50,2 %, mientras que 1–3 respuestas queda por debajo (24,7 %).
 
 **Decisión:** De las siete features de competencia marcadas `por verificar` (`src/features.py:77-83`), seis entran como numéricas crudas (`p_respuestas_al_procedimiento` y `p_proveedores_invitados` son las principales, `src/features.py:77`, `80`; cálculo en `src/features.py:270-273`); `p_proveedores_que_manifestaron` se descarta por ser constante 0 en el train (`src/preprocesamiento.py:19`, `43`). En la familia `arbol` no se imputan los ceros, no se aplica `log1p` y no se dicotomizan (`src/preprocesamiento.py:173`); el HGB maneja los NaN (`src/preprocesamiento.py:8-10`). J3 mantuvo las ocho `FEATURES_POR_VERIFICAR` en la lista (las siete de competencia y `log_pago_adelantado`, `src/features.py:66`); la ablación de quitarlas no cambió el PR-AUC 0,584 (`resultados/j3_decisiones.md:16`).
 
@@ -72,7 +72,7 @@ Cada **Decisión** describe lo que hace el pipeline v1, verificado contra `src/f
 
 ## §6.3 H3. La modalidad se asocia con la ampliación del plazo
 
-**Resultado: confirmada** para H3 (`docs/01_definicion_problema.md:44`). La modalidad separa tasas muy distintas, desde 81,3 % en licitación pública de obra hasta 17,2 % en mínima cuantía; la hipótesis no fija una dirección, solo que la modalidad influye, y eso se observa.
+**Resultado: confirmada** para H3 (`docs/01_definicion_problema.md`, §3). La modalidad separa tasas muy distintas, desde 81,3 % en licitación pública de obra hasta 17,2 % en mínima cuantía; la hipótesis no fija una dirección, solo que la modalidad influye, y eso se observa.
 
 **Decisión:** `modalidad_de_contratacion` y `justificacion_modalidad_de` entran como categóricas (`src/features.py:44-45`). En la familia `arbol` se codifican con `OrdinalEncoder(max_categories=200)`, que agrupa las categorías infrecuentes en un solo código (`src/preprocesamiento.py:167-168`, `172`); no hay one-hot ni una dicotomía directa/competitiva construida a mano. Las categorías nativas se descartaron porque la app explica con SHAP TreeExplainer (`resultados/j3_decisiones.md:10-13`).
 
@@ -90,7 +90,7 @@ Cada **Decisión** describe lo que hace el pipeline v1, verificado contra `src/f
 
 ## §6.4 H4. La anualidad presupuestal se asocia con el plazo
 
-**Resultado: contraria a la hipótesis** H4 (`docs/01_definicion_problema.md:45`). La hipótesis espera más ampliaciones en el último trimestre; la tabla muestra lo contrario: 18,7 % en el último trimestre frente a 31,2 % en el resto en train (19,3 % frente a 29,7 % en 2019–2025).
+**Resultado: contraria a la hipótesis** H4 (`docs/01_definicion_problema.md`, §3). La hipótesis espera más ampliaciones en el último trimestre; la tabla muestra lo contrario: 18,7 % en el último trimestre frente a 31,2 % en el resto en train (19,3 % frente a 29,7 % en 2019–2025).
 
 **Decisión:** `mes_firma`, `firma_ultimo_trimestre`, `fin_planeado_cruza_anio` y `dias_firma_a_inicio` entran como numéricas (`src/features.py:68-72`). `mes_firma` se calcula como `firma.dt.month`, entero 1–12 (`src/features.py:253`), y en la familia `arbol` pasa crudo (`src/preprocesamiento.py:173`); no se trata como cíclica ni como one-hot. La versión cíclica (seno/coseno) existe solo en la familia `distancia` (`src/preprocesamiento.py:50`, `176`, `188`). `anio_firma` no está en `FEATURES` (`src/features.py:85-87`).
 
@@ -108,7 +108,7 @@ Cada **Decisión** describe lo que hace el pipeline v1, verificado contra `src/f
 
 ## §6.5 H5. Los plazos subestimados se asocian con más ampliaciones
 
-**Resultado: contraria a la hipótesis** H5 (`docs/01_definicion_problema.md:46`). La hipótesis espera que los plazos más subestimados se amplíen más; la tabla muestra lo contrario: (0, 0,5] de la duración típica tiene 20,5 % y (1,5, 2] tiene 41,1 % en train (19,9 % frente a 40,5 % en 2019–2025).
+**Resultado: contraria a la hipótesis** H5 (`docs/01_definicion_problema.md`, §3). La hipótesis espera que los plazos más subestimados se amplíen más; la tabla muestra lo contrario: (0, 0,5] de la duración típica tiene 20,5 % y (1,5, 2] tiene 41,1 % en train (19,9 % frente a 40,5 % en 2019–2025).
 
 **Decisión:** `p_dur_dias` entra como numérica (`src/features.py:74`, `268`) y pasa por `DuracionLimpia` dentro del Pipeline (`src/preprocesamiento.py:17-18`, `55-76`, `172`): los valores 0 o negativos se vuelven NaN y generan el indicador `p_dur_dias_cero`, y el resto se recorta al cuantil 99,9 % aprendido del train (`src/preprocesamiento.py:40`, `62-67`); en el ajuste v1 (train maduro 2019–2023) ese tope es 1.259 días. `p_unidad_de_duracion` entra como categórica (`src/features.py:64`) y se codifica con el mismo `OrdinalEncoder`. No hay recorte fijo a 3.650 días: 3.650 es solo un corte descriptivo de la Tabla 4.3.3. La duración relativa a la mediana de la familia no está en `FEATURES`; solo existe para el EDA (`src/eda.py:748-760`).
 
@@ -127,7 +127,7 @@ Cada **Decisión** describe lo que hace el pipeline v1, verificado contra `src/f
 
 ## §6.6 H6. Las entidades tienen hábitos
 
-**Resultado: confirmada** para H6 (`docs/01_definicion_problema.md:47`). La tasa histórica de la entidad separa la tasa futura: T3 41,6 %, T2 20,5 %, T1 14,3 %, tasa 0 11,4 %, sin historia 11,5 % en test 2024.
+**Resultado: confirmada** para H6 (`docs/01_definicion_problema.md`, §3). La tasa histórica de la entidad separa la tasa futura: T3 41,6 %, T2 20,5 %, T1 14,3 %, tasa 0 11,4 %, sin historia 11,5 % en test 2024.
 
 **Decisión:** `nit_entidad` entra como categórica (`src/features.py:57`) y se codifica con `TargetEncoder(target_type="binary", smooth="auto", cv=StratifiedKFold(5, shuffle=True, random_state=config.SEED))` dentro del Pipeline (`src/preprocesamiento.py:151-155`, `190`); las entidades no vistas reciben la media global del train (`src/preprocesamiento.py:152-153`). Los proxies de entidad (`sector`, `orden`, `rama`, `entidad_centralizada`, `departamento`, `ciudad`) entran como categóricas (`src/features.py:58-63`) y, como el resto de categóricas, usan `OrdinalEncoder(max_categories=200)` (`src/preprocesamiento.py:167-168`). No se usa one-hot de entidad ni el nombre.
 
@@ -145,7 +145,7 @@ Cada **Decisión** describe lo que hace el pipeline v1, verificado contra `src/f
 
 ## §6.7 H7. El tipo de objeto importa
 
-**Resultado: confirmada** para H7 (`docs/01_definicion_problema.md:48`). Los segmentos y familias UNSPSC, el tipo de contrato y la longitud del objeto separan tasas: segmento 85 40,3 % frente a 82 17,7 %; interventoría 71,9 % frente a comodato 18,6 %; `len_objeto` <=50 58,5 %.
+**Resultado: confirmada** para H7 (`docs/01_definicion_problema.md`, §3). Los segmentos y familias UNSPSC, el tipo de contrato y la longitud del objeto separan tasas: segmento 85 40,3 % frente a 82 17,7 %; interventoría 71,9 % frente a comodato 18,6 %; `len_objeto` <=50 58,5 %.
 
 **Decisión:** `tipo_de_contrato`, `unspsc_segmento`, `unspsc_familia` y `len_objeto` entran en `FEATURES` (`src/features.py:43`, `46-47`, `67`); las dos UNSPSC se derivan del código de categoría (`src/features.py:247-250`). Las tres categóricas se codifican con `OrdinalEncoder(max_categories=200)` (`src/preprocesamiento.py:167-168`, `172`); `len_objeto` es numérica cruda (`src/features.py:263`) y no se usa el texto crudo del objeto. `len_objeto` se conserva con seguimiento en la evaluación con entidades no vistas: es un indicador indirecto de la entidad (cargos de hospitales), no una fuga (`docs/EDA_INSIGHTS_PREPROCESAMIENTO.md:26-29`).
 
