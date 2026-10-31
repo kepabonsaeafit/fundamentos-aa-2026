@@ -1,16 +1,16 @@
 # Despliegue de la app de consulta (G2)
 
 > Leyenda: **[VERIFICADO]** visto en el código, los datos o la documentación oficial · **[SUPUESTO]** · **[ESTIMADO]** · **[NO EVALUADO]**.
-> Estado al 26 de octubre de 2026: la app funciona en local con el modelo dummy y con contratos reales de datos.gov.co. **Falta publicarla en Streamlit Community Cloud**, un paso que hace Gerónimo con su cuenta de GitHub (sección 4).
+> Estado al 31 de octubre de 2026: la app está publicada en Streamlit Community Cloud (https://sknotzzxxdi7zwt6652giq.streamlit.app) con el modelo v1.0; las capturas están en la sección 2. Las secciones 4 y 5 describen cómo se publica y cómo se cambia el modelo.
 
 ## 1. Decisión: dónde se despliega
 
 - **Decisión:** Streamlit Community Cloud, con la app en `final-project/app/app.py`.
-- **Alternativas consideradas:** Hugging Face Spaces (CPU básico) y Render (plan gratuito). Como plan C, correr `streamlit run` en local.
+- **Alternativas consideradas:** Hugging Face Spaces (CPU básico). Como plan C, correr `streamlit run` en local.
 - **Por qué:**
   - Despliega desde el mismo repositorio público, se redespliega en cada `push` y todo es Python, sin copiar archivos a otro repositorio.
-  - La RAM que necesita la app (290 MB, ver abajo) cabe con holgura en el mínimo que la plataforma ofrece (690 MB).
-  - Hugging Face Spaces exige un repositorio aparte que hay que mantener sincronizado, y Render gratuito ofrece unos 512 MB [SUPUESTO, no verificado en esta tarea], demasiado justo para `shap` y `scikit-learn`.
+  - La RAM medida en local (242 MB con el modelo v1, ver 3.8 del notebook; 290 MB con el modelo de prueba, ver abajo) queda por debajo del mínimo que la plataforma ofrece (690 MB). La RAM en la nube no se midió [NO EVALUADO].
+  - Hugging Face Spaces exige un repositorio aparte que hay que mantener sincronizado.
 - **Evidencia:**
 
 | Dato | Valor | Estado |
@@ -58,9 +58,11 @@ Usuario ──pega el número o el enlace del contrato──> app/app.py (Stream
 - **Fechas con hora:** desde la republicación del 26 de octubre la API devuelve las fechas con hora. `construir_features` las trunca al día, igual que en la base de entrenamiento; con 21 contratos reales (819 celdas) no hubo ninguna diferencia entre la API y la base (`resultados/paridad_api_base.md`).
 - **Qué muestra:** nivel de riesgo y percentil, no la probabilidad cruda (con la deriva queda descalibrada), más los 5 factores que más pesan y las aclaraciones del apartado 8 de `docs/01_definicion_problema.md`.
 
-| Inicio | Resultado (contrato real, modelo de prueba) |
-|---|---|
-| ![Inicio](img/app_inicio.jpg) | ![Resultado](img/app_resultado.jpg) |
+App publicada (https://sknotzzxxdi7zwt6652giq.streamlit.app), modelo v1.0, con los tres ejemplos de la pantalla:
+
+| Riesgo alto (Tunjuelito, p95) | Riesgo medio (Yarumal, p80) | Riesgo bajo (Manizales, p30) |
+|---|---|---|
+| ![Riesgo alto](img/nube_riesgo_alto.jpg) | ![Riesgo medio](img/nube_riesgo_medio.jpg) | ![Riesgo bajo](img/nube_riesgo_bajo.jpg) |
 
 ## 3. Qué hay en el repositorio para desplegar
 

@@ -1,6 +1,6 @@
 # Interpretaciones EDA para el modelo
 
-Documento de trabajo para cerrar las lecturas pendientes de `notebooks/03_eda.ipynb` (§4.3, §5, §6.1–§6.7, §7.2 y §8). No modifica el notebook.
+Documento de trabajo para cerrar las lecturas pendientes de `notebooks/_borradores/03_eda.ipynb` (§4.3, §5, §6.1–§6.7, §7.2 y §8). No modifica el notebook.
 
 Cada **Decisión** describe lo que hace el pipeline v1, verificado contra `src/features.py`, `src/preprocesamiento.py`, `src/modelo.py`, `src/modelado.py` y `src/evaluacion.py`, con archivo y línea. Las recomendaciones del EDA que el pipeline no aplica quedan en **Alternativas** con la razón. Las cifras del EDA salen de `docs/eda_tablas.md` y se citan por tabla; para §6.1–§6.5, §6.7 y §7.2 la **Evidencia principal** son las tablas `X.b` sobre train 2019–2023, con la tabla original 2019–2025 como contraste; §6.6 usa test 2024 porque la tasa histórica se calcula con 2019–2023 y se evalúa fuera de muestra. Las tablas `X.b` usan el train completo (n = 261.831), no solo los 261.249 maduros con los que entrena el modelo; describen el tramo, no el ajuste, y las diferencias en pp son frente a la tasa base del subconjunto. Las cifras de la cadena de fuga de §8 salen de `resultados/`. Las hipótesis H1–H7 son las de `docs/01_definicion_problema.md`, §3. El lenguaje es asociativo: “se asocia con”, “es consistente con”.
 
@@ -42,7 +42,7 @@ Cada **Decisión** describe lo que hace el pipeline v1, verificado contra `src/f
 - Imputar la mediana y agregar un indicador de faltante (el EDA lo llama `sin_publicacion`; en `distancia` se implementa como `dias_publicacion_a_firma_faltante`, `src/preprocesamiento.py:119-136`): descartada en v1 porque el HGB maneja NaN de forma nativa (`src/preprocesamiento.py:8-10`) y el faltante es 0,08 % en 2019–2025 (380 de 452.494) y 11 contratos en train.
 - Excluirla y dejar que el calendario capture el proceso.
 - Usar solo tramos (0, 1–7, 8–15, …): el EDA lo recomendaba para modelos lineales o kNN por la relación no monótona; en v1 entra la numérica cruda.
-- Familia `distancia` (kNN/SVM) con imputación, indicador y escalado: existe en `src/modelado.py:51-57` y `notebooks/05_modelado.ipynb`, pero no es el artefacto v1.
+- Familia `distancia` (kNN/SVM) con imputación, indicador y escalado: existe en `src/modelado.py:51-57` y `notebooks/_borradores/05_modelado.ipynb`, pero no es el artefacto v1.
 
 **Por qué:** La asociación no es lineal: se concentra en 31–120 días y cae en los extremos. El dato está disponible al firmar y el faltante es mínimo.
 
