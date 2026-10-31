@@ -71,7 +71,7 @@
 **Qué hacer después:**
 - **F2:** Modificaciones se descarga con el filtro de servidor `estado_modificacion = 'Publicado' AND dias_extendidos > 0 AND fecha_version <= corte` y solo con las 8 columnas de esta tabla.
 - **F3 (`src/etiqueta.py`):** deduplicar las filas exactas, calcular `y_modif` con la definición aprobada, `y = y_dias | y_modif`, y guardar `y_dias` e `y_modif` para la sensibilidad.
-- **EDA y G3:** el salto de 2025 en `y_dias` es un efecto de registro, no una deriva real. Con la etiqueta aprobada, la tasa de 2019-2024 queda entre 19,5 % y 26,5 % sin diferencias entre años (χ², p = 0,56).
+- **EDA y G3:** el salto de 2025 en `y_dias` es consistente con un cambio en el registro (no verificado en v1), no con una deriva real de `y`. En la muestra de la F1 (v0), con la etiqueta aprobada la tasa de 2019-2024 quedaba entre 19,5 % y 26,5 % sin diferencias entre años (χ², p = 0,56); en la v1 sí hay diferencias, de 22,2 % en 2019 a 30,0 % en 2023 (Tabla 5.1 del notebook).
 - Ninguna de estas columnas entra a `FEATURES`.
 
 ## 4. Fuga sospechosa

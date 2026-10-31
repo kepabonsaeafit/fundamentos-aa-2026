@@ -1,6 +1,6 @@
 """Funciones reutilizables del EDA (F4).
 
-El notebook `notebooks/03_eda.ipynb` llama estas funciones. Todo lo que depende de la etiqueta
+El notebook `notebooks/_borradores/03_eda.ipynb` llama estas funciones. Todo lo que depende de la etiqueta
 recibe `col_y` como parametro para que el mismo codigo corra con la base v0 (y = y_dias) y con la v1
 (etiqueta definitiva). Las funciones de calidad, distribucion y deriva no leen la etiqueta.
 

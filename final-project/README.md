@@ -2,7 +2,7 @@
 
 Proyecto final de aprendizaje automático (EAFIT, 2026-2). Al firmar un contrato estatal, estima la probabilidad de que termine con el plazo ampliado (prórroga, suspensión o ajuste de fechas), para que veedurías y oficinas de control interno prioricen qué contratos vigilar; ordena por riesgo, no detecta irregularidades. Entrenado con 2019-2023, en el test de 2024 (contratos con plazo vencido) logra PR-AUC 0,584 y ROC-AUC 0,781, frente a 0,470 y 0,682 de la regla «tasa histórica de la entidad» y una tasa base de 0,247.
 
-**Entregable:** [`model_development.ipynb`](model_development.ipynb) (EDA, preprocesamiento, entrenamiento y justificación de las decisiones). **App:** [URL: se agrega al desplegar]
+**Entregable:** [`model_development.ipynb`](model_development.ipynb) (EDA, preprocesamiento, entrenamiento y justificación de las decisiones). **App:** [https://sknotzzxxdi7zwt6652giq.streamlit.app](https://sknotzzxxdi7zwt6652giq.streamlit.app) (Streamlit Community Cloud)
 
 ## Fuente de datos
 
@@ -17,7 +17,7 @@ docs/            definición del problema, reglas, lista de fuga, plan, desplieg
 resultados/      salidas de los scripts de src/ que el notebook lee
 models/          modelo v1 congelado (.joblib + .json); el dummy es solo para pruebas
 tests/           76 pruebas (pytest)
-notebooks/       borradores por sección que alimentaron el notebook final
+notebooks/       solo _borradores/: borradores de trabajo, superados por model_development.ipynb
 00_exploracion/  histórico de la exploración, solo lectura
 data/            no se versiona (raw/ inmutable y processed/)
 ```

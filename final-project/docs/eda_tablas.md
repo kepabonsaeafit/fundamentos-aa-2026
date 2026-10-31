@@ -1,6 +1,6 @@
 # Tablas EDA — base v1_A (corte 26-oct-2026)
 
-Documento de trabajo para cerrar las interpretaciones pendientes de `notebooks/03_eda.ipynb` (§4.3, §5, §6.1–§6.7, §7.2 y §8). No edita el notebook. Todas las tablas se generaron en esta sesión con la base v1_A y el código que aparece en cada bloque `<details>`.
+Documento de trabajo para cerrar las interpretaciones pendientes de `notebooks/_borradores/03_eda.ipynb` (§4.3, §5, §6.1–§6.7, §7.2 y §8). No edita el notebook. Todas las tablas se generaron en esta sesión con la base v1_A y el código que aparece en cada bloque `<details>`.
 
 ## §0. Base, subconjuntos y convenciones
 
@@ -2004,7 +2004,7 @@ a_pro, _ = auc_cat(d, "el_contrato_puede_ser_prorrogado", "y")
 
 ## §10 Tablas reconstruidas
 
-Tablas que no existían en `notebooks/03_eda.ipynb` y se construyeron en esta sesión:
+Tablas que no existían en `notebooks/_borradores/03_eda.ipynb` y se construyeron en esta sesión:
 
 1. §4.3, tabla 4.3.4: madurez × año, con n y tasa de y de maduros y no maduros.
 2. §4.3, tabla 4.3.5: composición de los no maduros de 2019–2024 por tipo de contrato.
@@ -2018,4 +2018,4 @@ Tablas que no existían en `notebooks/03_eda.ipynb` y se construyeron en esta se
 
 Las tablas de §4.3.1–§4.3.3, §5.1–§5.2, §6.1–§6.7 y §7.2 sí existían en el notebook; se reformatearon a las columnas estándar y se agruparon las categorías con n < 500. No se cambiaron los cortes ni las definiciones de las variables.
 
-No se editó `notebooks/03_eda.ipynb`.
+No se editó `notebooks/_borradores/03_eda.ipynb`.

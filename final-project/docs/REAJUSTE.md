@@ -11,7 +11,7 @@ El enunciado pide tres cosas: cómo se detectaría que el desempeño se degradó
 |---|---|
 | **Cambian las entradas** | `dias_firma_a_inicio`: el 48 % de los contratos de 2019 tenía el inicio *antes* de la firma, el 12 % en 2020 y desde 2021 casi 0 %. Por eso la referencia del monitor son 2022-2023 y no todo el entrenamiento: con 2019-2023 el PSI de esta variable llegaba a 0,9 en febrero y marzo. |
 | **Cambia el comportamiento** | En 2025-T3 el 82 % del 1 % de mayor puntaje eran contratos de una sola entidad (la Defensoría) y solo el 15 % se amplió, frente al 22 % de un contrato cualquiera. El ROC-AUC global casi no se movió. |
-| **Cambia el registro de la etiqueta** | `y_dias` pasa de ~12 % a ~20 % en 2025 porque `dias_adicionados` guarda solo los días de la última modificación publicada. No es un cambio de comportamiento: con la etiqueta aprobada `y` la tasa no salta. |
+| **Cambia el registro de la etiqueta** | `y_dias` pasa de ~12 % a ~20 % en 2025, lo que es consistente con un cambio en el registro de `dias_adicionados` (no verificado en v1; guardaría solo los días de la última modificación publicada). Con la etiqueta aprobada `y` la tasa casi no se mueve (24,7 % → 27,1 %), así que no apunta a un cambio de comportamiento. |
 | **Estacionalidad** | La tasa de `y` va de 34 % en enero a 16 % en octubre y noviembre; el ROC-AUC mensual oscila entre 0,71 y 0,87 solo por la composición de cada mes. |
 | **Etiquetas tardías** | El resultado se conoce meses después de firmar. Un contrato sin duración planeada solo madura al año; si se miden solo los maduros, los meses recientes quedan sesgados (el PSI de la duración de diciembre de 2025 dio 0,95 por este motivo y no por un cambio real). |
 
@@ -46,7 +46,7 @@ Modelo congelado (entrenado con 2019-2023) recorrido mes a mes y trimestre a tri
 |---|---|---|
 | **8 de 24 meses para revisar** por entradas (ene, mar, abr, jun y sep de 2024; ene, feb y jun de 2025). Las variables que más pesan son la duración planeada y el sector. | Cambios de composición frente a 2022-2023, mucho más suaves que la variación histórica entre años. | Observar. Sin impacto en el puntaje: su PSI máximo fue 0,094. |
 | **Puntaje estable**: 12 de 12 meses normales de 2025 frente al mismo mes de 2024. | El modelo reparte los puntajes igual que el año anterior. | Ninguna. |
-| **`y_dias` sube 6 a 9 puntos en los tres trimestres completos de 2025**, mientras `y` no. | Es el cambio de registro de `dias_adicionados`, no un cambio de comportamiento. Si se hubiera usado `y_dias` como etiqueta, el monitor habría saltado y reentrenar habría sido un error. | **No reentrenar**; mantener la etiqueta aprobada `y`. |
+| **`y_dias` sube 6 a 9 puntos en los tres trimestres completos de 2025**, mientras `y` no. | Es consistente con un cambio en el registro de `dias_adicionados` (no verificado en v1), no con un cambio de comportamiento. Si ese fuera el caso y se usara `y_dias` como etiqueta, el monitor saltaría y reentrenar sería un error. | **No reentrenar**; mantener la etiqueta aprobada `y`. |
 | **`y` baja 6,7 y 6,6 puntos en 2024-T1 y T2** frente a 2023. | [NO EVALUADO] la causa; el ROC-AUC de esos trimestres (0,771 y 0,737) no se degradó. | Seguir observando. |
 | **El top 1 % de 2025-T3 es peor que el azar** (precisión 0,15 frente a una tasa base de 0,225), con el 82 % de los contratos de una sola entidad. | Cambio de comportamiento de esa entidad que el ROC-AUC global no muestra. | Aviso; si se repite en 2025-T4 pasa a alarma. Revisar el peso de la entidad en el modelo. |
 | **Ninguna alarma de desempeño**: el ROC-AUC de 2025 frente al mismo trimestre de 2024 cambió −0,027, −0,002 y −0,009, con intervalos que incluyen 0. | El modelo se mantuvo estable. El −0,027 de 2025-T1 queda cerca del umbral de 0,03, pero su intervalo [−0,072, +0,016] incluye 0 y no genera aviso. | Sin reentrenamiento. |
@@ -90,4 +90,4 @@ python -m src.monitoreo        # desde final-project/, con la base v1 en data/pr
 pytest tests/test_monitoreo.py
 ```
 
-Escribe `resultados/monitoreo_mensual.csv`, `monitoreo_trimestral.csv`, `monitoreo_psi_historico.csv`, `monitoreo_campeon_retador.json` y `monitoreo_resumen.md`. El borrador de la sección 3.9 del notebook está en `notebooks/09_reajuste.ipynb`.
+Escribe `resultados/monitoreo_mensual.csv`, `monitoreo_trimestral.csv`, `monitoreo_psi_historico.csv`, `monitoreo_campeon_retador.json` y `monitoreo_resumen.md`. El borrador de la sección 3.9 del notebook está en `notebooks/_borradores/09_reajuste.ipynb`.

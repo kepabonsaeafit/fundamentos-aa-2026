@@ -7,7 +7,7 @@
 
 ## Contexto
 
-La exploración (`00_exploracion/`) eligió SECOP II: predecir, al firmar un contrato, la probabilidad de que termine prorrogado, para que veedurías y oficinas de control interno prioricen qué vigilar. El profesor aprobó el tema y pidió **justificar bien cómo los datos del contrato predicen la prórroga y qué ingresa el usuario**. Hay señal, pero más modesta de lo que decía la exploración (sección 0, punto 9): con las features limpias el HGB da 0,751 ROC-AUC / 0,333 PR-AUC en 2024 (F0, base v0, `y_dias`; v1: 0,781 / 0,584) frente a 0,714 / 0,277 de la regla por entidad. Además, la etiqueta subestima los positivos, hay censura y la tasa salta de 12 % a 20 % en 2025. La F1 mostró que ese salto es un efecto de registro y cambió la etiqueta (sección 0, punto 12).
+La exploración (`00_exploracion/`) eligió SECOP II: predecir, al firmar un contrato, la probabilidad de que termine prorrogado, para que veedurías y oficinas de control interno prioricen qué vigilar. El profesor aprobó el tema y pidió **justificar bien cómo los datos del contrato predicen la prórroga y qué ingresa el usuario**. Hay señal, pero más modesta de lo que decía la exploración (sección 0, punto 9): con las features limpias el HGB da 0,751 ROC-AUC / 0,333 PR-AUC en 2024 (F0, base v0, `y_dias`; v1: 0,781 / 0,584) frente a 0,714 / 0,277 de la regla por entidad. Además, la etiqueta subestima los positivos, hay censura y la tasa salta de 12 % a 20 % en 2025. La F1 encontró que ese salto es consistente con un cambio en el registro (no verificado en v1) y cambió la etiqueta (sección 0, punto 12).
 
 **Fechas:**
 - Quedan **10 días**.
@@ -56,7 +56,7 @@ El paralelismo se apoya en cuatro **contratos** (sección 2) y en una **base v0*
    - **Madurez:** filtrar por `eval_madura` casi no cambia las referencias (regla 0,714 → 0,715; HGB 0,751 → 0,752), porque la duración planeada mediana es de 120 días y el 97-99 % de los contratos de 2019-2025 ya venció.
 12. **Lo que cambió la F1 (23-25 de octubre).** [VERIFICADO; reportes en `.agents/tasks/f1/`, carpeta local no versionada; resumen de fuga en `docs/LISTA_FUGA.md` v1]
    - **Etiqueta aprobada:** `y = 1` si `dias_adicionados > 0` o existe una modificación `Publicado` con `dias_extendidos > 0` y `fecha_de_aprobacion > fecha_de_firma + 1 día` (4.3). El objetivo se llama **ampliación del plazo**: las suspensiones y los ajustes de fecha cuentan como positivos. En 1.400 contratos al azar (200 por año de firma), `y_dias` da 12,1 % y la etiqueta aprobada 24,4 % [22,2, 26,7] (27,6 % en la base v1).
-   - **El salto de 2025 en `y_dias` es un efecto de registro, no una deriva real.** `dias_adicionados` guarda solo los días de la última modificación publicada y vuelve a 0 cuando se publica otra sin días. En los contratos recientes todavía no llegó esa modificación posterior: `y_dias` marca el 80 % de los positivos de 2025 frente al 43 % de 2019-2024. Con la etiqueta aprobada, 2019-2024 queda entre 19,5 % y 26,5 % sin diferencias entre años (p = 0,56) [Actualizado con la v1: sí hay diferencias, de 22,2 % en 2019 a 30,0 % en 2023 y 24,7 % en 2024; el paso 3 tenía ~200 contratos por año y no podía detectarlas. Ver docs/BASE_V1.md.] y 2025 en 30,0 % (p = 0,05 frente a 2019-2024). **Nota para G3:** el ejemplo de alarma pasa a ser este cambio de registro, no un cambio de comportamiento.
+   - **El salto de 2025 en `y_dias` es consistente con un cambio en el registro del campo (no verificado en v1), no con una deriva real de `y`.** Hipótesis: `dias_adicionados` guarda solo los días de la última modificación publicada y vuelve a 0 cuando se publica otra sin días, y en los contratos recientes todavía no llegó esa modificación posterior. En la muestra de la F1 (v0), `y_dias` marca el 80 % de los positivos de 2025 frente al 43 % de 2019-2024. Con la etiqueta aprobada, 2019-2024 queda entre 19,5 % y 26,5 % sin diferencias entre años (p = 0,56) [Actualizado con la v1: sí hay diferencias, de 22,2 % en 2019 a 30,0 % en 2023 y 24,7 % en 2024; el paso 3 tenía ~200 contratos por año y no podía detectarlas. Ver docs/BASE_V1.md.] y 2025 en 30,0 % (p = 0,05 frente a 2019-2024). **Nota para G3:** el ejemplo de alarma pasa a ser este posible cambio de registro, no un cambio de comportamiento.
    - **Nota para J1-J3:** las cifras de la F0 (0,751 de ROC-AUC, +0,037 sobre la regla, entidades no vistas, top-k y dentro de entidad, puntos 9 y 11) se midieron con `y_dias` sobre la base v0. Las referencias reales se miden con la base v1: ROC-AUC limpio 0,781; con 6 montos 0,917; con fuga evidente 0,984.
    - **`fecha_de_inicio_del_contrato`:** no cambia más en `y = 1` que en `y = 0` (17,3 % frente a 13,4 %, p = 0,37), y casi todo es un desfase de 1 día entre conjuntos. `dias_firma_a_inicio` y `fin_planeado_cruza_anio` quedan como "segura con limitación"; la ablación pasa a J3.
    - **`duraci_n_del_contrato`** pasa a sospechosa (se actualiza en parte) y deja de ser respaldo en la censura (4.5).
@@ -334,7 +334,7 @@ Supuesto: jornadas de ~8 h efectivas por persona y por día, fines de semana inc
 - Listo cuando: la calidad pasa y la base v1 está compartida con su sha256 el lunes 26 a las 12:00.
 
 **F4. EDA (sáb 24 - mar 27)**
-- Rama: `feat/eda`, en el borrador `notebooks/03_eda.ipynb`.
+- Rama: `feat/eda`, en el borrador `notebooks/_borradores/03_eda.ipynb`.
 - Tareas [MÍNIMO]:
   - **H1-H7 con evidencia** (tasa de prórroga por grupo con intervalo, gráfica e interpretación): responde al profesor cómo los datos de la firma predicen la prórroga.
   - Etiqueta `y` frente a `y_dias` por año.
@@ -418,7 +418,7 @@ Supuesto: jornadas de ~8 h efectivas por persona y por día, fines de semana inc
 - Tareas [MÍNIMO]:
   - `src/monitoreo.py`: PR-AUC de los contratos que van madurando, PSI del puntaje y de las features clave, tasa base, criterio de alarma y de reentrenamiento, validación campeón/retador, y cómo se pondría en producción una v2.
   - Simulación con el `Pipeline` de J2 + HGB por defecto entrenado en 2019-2023, recorriendo 2024-2025 mes a mes (o por trimestre si se aprieta), para mostrar dónde salta la alarma. Usa la base v1 desde el lunes 26 en la tarde.
-  - **Ejemplo de alarma:** el salto de 2025 en `y_dias` es un cambio de registro (`dias_adicionados` guarda solo la última modificación publicada), no un cambio de comportamiento (sección 0, punto 12). La simulación lo presenta así.
+  - **Ejemplo de alarma:** el salto de 2025 en `y_dias` es consistente con un cambio en el registro (no verificado en v1; `dias_adicionados` guardaría solo la última modificación publicada), y no con un cambio de comportamiento (sección 0, punto 12). La simulación lo presenta así.
 - Listo cuando: la simulación corre, los umbrales están justificados y el borrador de §3.8-3.9 está listo el jueves 29.
 
 **Video (vie 30):** se graba con la app desplegada y el modelo v1.
@@ -646,7 +646,6 @@ Los límites son de memoria y **[SUPUESTO]**; Geronimo los confirma con la docum
 |---|---|---|---|
 | **Streamlit Community Cloud** | ~1 GB de RAM; se duerme tras días sin visitas; secrets | Despliega desde el mismo repo público, se redespliega en cada push, todo en Python | Se duerme (despertarla antes del video y de la sustentación); RAM justa si SHAP pesa |
 | **Hugging Face Spaces** (CPU básico) | ~2 vCPU, ~16 GB de RAM, se duerme tras ~48 h | RAM holgada para SHAP | Repo aparte que hay que sincronizar; otra cuenta; Streamlit pudo pasar a Docker |
-| **Render** (gratis) | ~512 MB de RAM; se duerme tras ~15 min | URL estable | RAM muy justa; arranque en frío de ~1 min en plena demo |
 
 **Recomendación:** Streamlit Community Cloud, con HF Spaces como plan B si la RAM medida pasa de ~700 MB. Sea cual sea:
 - `app/requirements.txt` con las mismas versiones del entrenamiento;
@@ -673,7 +672,7 @@ Los límites son de memoria y **[SUPUESTO]**; Geronimo los confirma con la docum
 | Fuga sutil | Columnas "por verificar", alarma de AUC univariado, variante C recalculada |
 | **La ventaja del modelo limpio sobre la regla por entidad es modesta** (ROC-AUC +0,037 [+0,011, +0,069]; PR-AUC +0,056 [+0,003, +0,113]) y depende de 3 features que usan `fecha_de_inicio_del_contrato`. La F1 la dejó como "segura con limitación": no ve cambios anteriores a la primera modificación. | Ablación explícita de las dos features en J3, global y dentro de entidad; medir el desempeño en entidades no vistas y la precisión en los primeros *k*; etiqueta mejorada, muestra del 10 % y ajuste de hiperparámetros en J3. Si al final no gana con claridad, se reporta con honestidad y se evalúa el valor del modelo en entidades no vistas y su combinación con la regla. Medido en la F0 (sección 0, punto 11): ventaja clara en entidades no vistas (ROC-AUC +0,208 [+0,084, +0,300]) y, en el top-k, solo en el 1 % más alto frente a la regla suavizada. |
 | Entidades no vistas | `TargetEncoder` suavizado; IC por entidad; aviso en la app |
-| Deriva de 2025 | Test aparte; riesgo en percentil; G3 la usa como alarma. La F1 mostró que el salto de `y_dias` en 2025 es un efecto de registro (sección 0, punto 12) |
+| Deriva de 2025 | Test aparte; riesgo en percentil; G3 la usa como alarma. La F1 encontró que el salto de `y_dias` en 2025 es consistente con un cambio en el registro, no verificado en v1 (sección 0, punto 12) |
 | Diferencias entre entrenamiento y app | Una sola `construir_features`; prueba de dtypes y paridad con 20 contratos |
 | Modelo real tarde para el video | La app ya funciona con el dummy desde el lun 26; el cambio es un archivo |
 | Repo público | Nunca datos, tokens ni PII; `.env` y secrets en `.gitignore`; la revisión de PR lo verifica |
